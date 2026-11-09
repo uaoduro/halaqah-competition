@@ -85,7 +85,7 @@ function render(){
  document.documentElement.lang=LANG;document.documentElement.dir=LANG==='en'?'ltr':'rtl';
  if(ro&&['log','past','tests','groups'].indexOf(UI.tab)>=0)UI.tab='board';
  var thIcon={auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>',light:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',dark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>'}[THEME];
- var h='<div class="wrap"><header class="top"><div class="brand">'+STAR+'<div><h1><bdi>'+esc(title())+'</bdi></h1><div class="sub">'+esc(dateLong(today()))+'</div></div></div><div class="hbtns">'+(ro?'<span class="badge">'+t('عرض فقط','View only')+'</span>':'')+'<button class="ibtn" data-act="theme" title="'+t('المظهر: ','Theme: ')+({auto:t('تلقائي','Auto'),light:t('فاتح','Light'),dark:t('داكن','Dark')})[THEME]+'">'+thIcon+'</button><button class="ibtn lang" data-act="lang" title="'+t('English','العربية')+'">'+(LANG==='en'?'ع':'EN')+'</button></div></header>';
+ var h='<div class="scroller"><div class="wrap"><header class="top"><div class="brand">'+STAR+'<div><h1><bdi>'+esc(title())+'</bdi></h1><div class="sub">'+esc(dateLong(today()))+'</div></div></div><div class="hbtns">'+(ro?'<span class="badge">'+t('عرض فقط','View only')+'</span>':'')+'<button class="ibtn" data-act="theme" title="'+t('المظهر: ','Theme: ')+({auto:t('تلقائي','Auto'),light:t('فاتح','Light'),dark:t('داكن','Dark')})[THEME]+'">'+thIcon+'</button><button class="ibtn lang" data-act="lang" title="'+t('English','العربية')+'">'+(LANG==='en'?'ع':'EN')+'</button></div></header>';
  if(!LS_OK)h+='<div class="banner">'+t('تعذّر الوصول إلى التخزين على هذا الجهاز — لن تُحفظ البيانات. افتح التطبيق في Safari أو Chrome العادي.','Storage isn’t available on this device, so data won’t be saved. Open the app in regular Safari or Chrome.')+'</div>';
  if(false)h+='<div class="banner">'+t('وضع المعاينة: يمكنك التجربة، لكن التعديلات لن تُحفظ هنا. افتح الصفحة من رابطها للحفظ.','Preview mode: you can try things out, but changes won’t be saved here. Open the page from its link to save.')+'</div>';
  var subs=tabs().filter(function(x){return ro?(x[0]==='board'||x[0]==='rules'):(x[0]!=='log'&&x[0]!=='board');});
@@ -94,14 +94,16 @@ function render(){
  var TB=ro?[['board','🏆',t('الترتيب','Leaderboard'),UI.tab==='board'],['rules','📊',t('القواعد','Rules'),UI.tab==='rules']]:[['log','📝',t('تسجيل الحصة','Record class'),UI.tab==='log'],['board','🏆',t('الترتيب','Leaderboard'),UI.tab==='board'],[UI.sub,'⚙️',t('الإعدادات','Settings'),inSet]];
  var tabbar='<nav class="tabbar">'+TB.map(function(x){return '<button data-act="tab" data-v="'+x[0]+'" class="'+(x[3]?'on':'')+'"><span class="ti">'+x[1]+'</span><span>'+x[2]+'</span></button>';}).join('')+'</nav>';
  h+=({board:vBoard,log:vLog,past:vPast,tests:vTests,groups:vGroups,rules:vRules})[UI.tab]();
- h+='</div>'+tabbar;
+ h+='</div></div>'+tabbar;
  if(dirty&&!ro)h+='<div class="savebar"><div><span class="muted small sp">'+t('لديك تغييرات غير محفوظة','You have unsaved changes')+'</span><button class="btn pri" data-act="save" '+(saving?'disabled':'')+'>'+(saving?t('جارٍ الحفظ…','Saving…'):t('حفظ التغييرات','Save changes'))+'</button></div></div>';
  if(UI.modal)h+='<div class="modal" data-act="closemodal"><div class="card" data-stop="1"><h2>'+esc(UI.modal.title)+'</h2><p class="muted small">'+t('حدّد النص وانسخه يدويًا:','Select the text and copy it manually:')+'</p><textarea readonly style="min-height:220px" dir="auto">'+esc(UI.modal.text)+'</textarea><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn" data-act="closemodal">'+t('إغلاق','Close')+'</button></div></div></div>';
  if(toastMsg)h+='<div class="toast">'+esc(toastMsg)+'</div>';
+ var sc0=app.querySelector('.scroller'),st0=sc0?sc0.scrollTop:0;
  app.innerHTML=h;
+ var sc1=app.querySelector('.scroller');if(sc1){sc1.scrollTop=resetScroll?0:st0;}resetScroll=false;
  if(UI.modal){var ta=app.querySelector('.modal textarea');if(ta){ta.focus();ta.select();}}
 }
-var toastMsg=null,toastT;
+var toastMsg=null,toastT,resetScroll=false;
 function toast(m){toastMsg=m;render();clearTimeout(toastT);toastT=setTimeout(function(){toastMsg=null;render();},2600);}
 function monthSel(months){return '<select data-act="month">'+months.map(function(m){return '<option value="'+m.k+'" '+(m.k===UI.month?'selected':'')+'>'+esc(m.label)+'</option>';}).join('')+'</select>';}
 function catNames(){return [t('الحضور','Attendance'),t('السلوك والمظهر','Behaviour & appearance'),t('التسميع','Recitation'),t('اختبار التجاوز','Graduation test'),'🌹 '+t('الأسبوع الكامل','Perfect week')];}
@@ -272,7 +274,7 @@ app.addEventListener('click',function(ev){
  switch(a){
  case 'theme':THEME={auto:'light',light:'dark',dark:'auto'}[THEME];try{localStorage.setItem('hc-theme',THEME);}catch(e){}applyTheme();toast(t('المظهر: ','Theme: ')+({auto:t('تلقائي (حسب الجهاز)','Auto (follows device)'),light:t('فاتح','Light'),dark:t('داكن','Dark')})[THEME]);return;
  case 'lang':LANG=LANG==='en'?'ar':'en';try{localStorage.setItem('hc-lang',LANG);}catch(e){}break;
- case 'tab':UI.tab=v;if(v!=='log'&&v!=='board')UI.sub=v;saveUI();window.scrollTo(0,0);break;
+ case 'tab':UI.tab=v;if(v!=='log'&&v!=='board')UI.sub=v;saveUI();resetScroll=true;break;
  case 'toggle':UI.open[v]=!UI.open[v];saveUI();break;
  case 'save':persist();return;
  case 'closemodal':UI.modal=null;break;
@@ -283,7 +285,7 @@ app.addEventListener('click',function(ev){
  case 'restoreok':if(UI.pending){S=UI.pending;S.groups=S.groups||[];S.sessions=S.sessions||{};S.tests=S.tests||[];S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||{});UI.pending=null;UI.month=null;persist(t('تمت الاستعادة ✓','Restored ✓'));}break;
  case 'restorecancel':UI.pending=null;break;
  case 'day':UI.date=addDays(UI.date||today(),+v);saveUI();break;
- case 'goto':UI.date=v;UI.tab='log';saveUI();window.scrollTo(0,0);break;
+ case 'goto':UI.date=v;UI.tab='log';saveUI();resetScroll=true;break;
  case 'set':setRec(s,{a:v});break;
  case 'tg':var cur=(S.sessions[UI.date]||{})[s]||DEF;var o={};var cv=cur[el.dataset.k];if(el.dataset.k==='pc'&&cv===undefined)cv=1;o[el.dataset.k]=cv?0:1;setRec(s,o);break;
  case 'ex':var c2=(S.sessions[UI.date]||{})[s]||DEF;setRec(s,{x:Math.max(0,(+c2.x||0)+(+v))});break;

@@ -5,7 +5,10 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Arabic","Segoe UI",Roboto,"Noto Sans Arabic",Tahoma,sans-serif;font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;touch-action:manipulation}
-.wrap{max-width:640px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(150px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+.wrap{max-width:640px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 96px calc(16px + env(safe-area-inset-left))}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+.scroller{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:6px 0 14px}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
 .logo{width:36px;height:36px;color:var(--green);flex:none}
@@ -20,7 +23,7 @@ h1{font-size:21px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em
 .tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--grey2);border-radius:12px;padding:3px;margin-bottom:16px}
 .tabs button{flex:1 1 auto;border:0;background:transparent;border-radius:9px;padding:8px 10px;font-size:14px;font-weight:600;white-space:nowrap;min-height:36px}
 .tabs button.on{background:var(--segon);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.tabbar{position:fixed;inset-inline:0;bottom:0;z-index:6;display:flex;justify-content:center;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--line);padding:6px calc(8px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left))}
+.tabbar{position:relative;flex:none;z-index:6;display:flex;justify-content:center;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--line);padding:6px calc(8px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left))}
 .tabbar button{flex:1;max-width:200px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;color:var(--muted);font-size:11px;font-weight:600}
 .tabbar .ti{font-size:22px;line-height:1.1;filter:grayscale(1);opacity:.6}
 .tabbar button.on{color:var(--green)}
