@@ -71,10 +71,10 @@ function compute(mk){
   var act=active(r.g);var wk={};
   Object.keys(S.sessions).sort().forEach(function(d){var recs=S.sessions[d];if(r.g.students.some(function(s){return recs[s.id];})){var k=weekKey(d);(wk[k]=wk[k]||[]).push(d);}});
   Object.keys(wk).sort().forEach(function(k){var ds=wk[k];var last=ds[ds.length-1];if(monthKey(last)!==mk||!act.length)return;
-   var ok=ds.every(function(d){return act.every(function(s){var x=S.sessions[d][s.id];return x&&x.a==='p';});});
+   var ok=ds.every(function(d){return r.g.students.every(function(s){var x=S.sessions[d][s.id];return !x||x.a==='p';});});
    r.weeks.push({k:k,ok:ok,live:addDays(k,4)>=td});if(ok)r.week+=10;});
   r.stu.forEach(function(o){o.total=o.att+o.ba+o.rec+o.ach;r.att+=o.att;r.ba+=o.ba;r.rec+=o.rec;r.ach+=o.ach;});
-  r.total=r.att+r.ba+r.rec+r.ach+r.week;r.avg=Math.round(r.total/r.n*10)/10;
+  r.total=r.att+r.ba+r.rec+r.ach+r.week;r.n=r.stu.filter(function(o){return o.days||o.ach;}).length||active(r.g).length||1;r.avg=Math.round(r.total/r.n*10)/10;
   r.stu.sort(function(a,b){return b.total-a.total;});});
  return {groups:G,byS:byS};}
 
