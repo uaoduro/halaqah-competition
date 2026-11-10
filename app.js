@@ -14,7 +14,7 @@ var app=document.getElementById('app');
 var UI={tab:'log',sub:'past',month:null,date:null,gf:'all',open:{},og:{},os:{},arm:null,modal:null};
 try{var sv=JSON.parse(sessionStorage.getItem('hc-ui')||'null');if(sv)Object.assign(UI,sv,{arm:null,modal:null});}catch(e){}
 UI.og=UI.og||{};UI.os=UI.os||{};delete UI.cg;
-function saveUI(){try{sessionStorage.setItem('hc-ui',JSON.stringify({sub:UI.sub,tab:UI.tab,month:UI.month,date:UI.date,gf:UI.gf,open:UI.open,og:UI.og,os:UI.os}));}catch(e){}}
+function saveUI(){try{sessionStorage.setItem('hc-ui',JSON.stringify({rep:UI.rep,sub:UI.sub,tab:UI.tab,month:UI.month,date:UI.date,gf:UI.gf,open:UI.open,og:UI.og,os:UI.os}));}catch(e){}}
 
 /* ---------- language ---------- */
 var LANG='ar';
@@ -42,7 +42,7 @@ var hijriOK=true,HN,F={};
 try{HN=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{year:'numeric',month:'numeric'});
 if(HN.resolvedOptions().calendar.indexOf('islamic')<0)hijriOK=false;}catch(e){hijriOK=false;}
 function fmt(kind){var k=LANG+kind;if(F[k])return F[k];var base=LANG==='en'?'en-GB':'ar-SA';var h=base+'-u-ca-islamic-umalqura-nu-latn',g=base+'-u-ca-gregory-nu-latn';
- var o={HL:[h,{month:'long',year:'numeric'}],HD:[h,{weekday:'long',day:'numeric',month:'long',year:'numeric'}],GL:[g,{month:'long',year:'numeric'}],GD:[g,{day:'numeric',month:'long'}],GF:[g,{weekday:'long',day:'numeric',month:'long',year:'numeric'}]}[kind];
+ var o={HL:[h,{month:'long',year:'numeric'}],HD:[h,{weekday:'long',day:'numeric',month:'long',year:'numeric'}],HS:[h,{day:'numeric',month:'long'}],GL:[g,{month:'long',year:'numeric'}],GD:[g,{day:'numeric',month:'long'}],GF:[g,{weekday:'long',day:'numeric',month:'long',year:'numeric'}]}[kind];
  return F[k]=new Intl.DateTimeFormat(o[0],o[1]);}
 function useH(){return S.settings.cal==='hijri'&&hijriOK;}
 function monthKey(s){if(useH()){var p=HN.formatToParts(toD(s));var y,m;p.forEach(function(x){if(x.type==='year')y=x.value;if(x.type==='month')m=x.value;});return 'h'+y+'-'+pad(+m);}return 'g'+s.slice(0,7);}
@@ -115,7 +115,8 @@ function vBoard(){
  var key=function(r){return avg?r.avg:r.total;};
  var R=C.groups.slice().sort(function(a,b){return key(b)-key(a);});
  var max=Math.max(1,Math.max.apply(null,R.map(key)));var cn=catNames();
- var h='<div class="row" style="margin-bottom:12px"><h2 style="margin:0">'+t('ترتيب المجموعات','Group rankings')+'</h2><span class="sp"></span>'+monthSel(months)+'</div><div class="row" style="margin:-2px 0 12px"><button class="btn pri sp" data-act="shareimg">🖼️ '+t('مشاركة صورة النتائج','Share results image')+'</button><button class="btn sp" data-act="sharetxt">💬 '+t('مشاركة كنص','Share as text')+'</button></div>';
+ var h='<div class="row" style="margin-bottom:12px"><h2 style="margin:0">'+t('ترتيب المجموعات','Group rankings')+'</h2><span class="sp"></span>'+(UI.rep==='week'?'':monthSel(months))+'</div>'+repToggle()+'<div class="row" style="margin:-2px 0 12px"><button class="btn pri sp" data-act="shareimg">🖼️ '+(UI.rep==='week'?t('مشاركة صورة الأسبوع','Share week image'):t('مشاركة صورة النتائج','Share results image'))+'</button><button class="btn sp" data-act="sharetxt">💬 '+t('مشاركة كنص','Share as text')+'</button></div>';
+ if(UI.rep==='week')return h+vWeek();
  if(avg)h+='<p class="muted small" style="margin-top:-4px">'+t('الترتيب حسب متوسط نقاط الطالب في كل مجموعة.','Ranked by average points per student in each group.')+'</p>';
  var prev=null,rk=0;
  R.forEach(function(r,i){var v=key(r);if(v!==prev){rk=i+1;prev=v;}
@@ -131,14 +132,39 @@ function vBoard(){
  if(top.length)h+='<div class="card"><h2>⭐ '+t('أبرز الطلاب هذا الشهر','Top students this month')+'</h2><div class="toplist">'+top.map(function(o,i){return '<div style="--gc:'+o.color+'"><b class="num" style="width:24px">'+(i+1)+'</b><span class="dot"></span><span class="sp"><bdi>'+esc(o.s.name)+'</bdi> <span class="muted small">· <bdi>'+esc(o.g.name)+'</bdi></span>'+(o.tests.length?' 🌟':'')+'</span><b>'+sgn(o.total)+'</b></div>';}).join('')+'</div></div>';
  return h;}
 
-function waText(){var months=monthList();var m=months.filter(function(x){return x.k===UI.month;})[0]||months[0];var C=compute(m.k);var avg=S.settings.rank==='avg';
- var R=C.groups.slice().sort(function(a,b){return avg?b.avg-a.avg:b.total-a.total;});
- var s='🏆 *'+title()+'*\n_'+t('نتائج','Results for')+' '+m.label+'_\n\n';
- R.forEach(function(r,i){s+=(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' *'+r.g.name+'*: '+(avg?r.avg+' ('+t('متوسط','average')+')':r.total+' '+t('نقطة','points'))+'\n';});
- var top=Object.keys(C.byS).map(function(k){return C.byS[k];}).filter(function(o){return o.days||o.ach;}).sort(function(a,b){return b.total-a.total;}).slice(0,3);
- if(top.length){s+='\n⭐ _'+t('أبرز الطلاب:','Top students:')+'_\n';top.forEach(function(o){s+='• '+o.s.name+' ('+o.g.name+'): '+o.total+'\n';});}
+function lastWeek(){var td=today();var ds=Object.keys(S.sessions).filter(function(d){return d<=td;}).sort();return ds.length?weekKey(ds[ds.length-1]):weekKey(td);}
+function computeWeek(wk){
+ var ds=Object.keys(S.sessions).filter(function(d){return weekKey(d)===wk;}).sort();
+ var byS={},G=S.groups.map(function(g,i){var r={g:g,color:COLORS[i%COLORS.length],total:0,week:0,perfect:false,stu:[]};
+  g.students.forEach(function(s){var o={s:s,g:g,total:0,days:0,ach:0};byS[s.id]=o;r.stu.push(o);});return r;});
+ ds.forEach(function(d){var recs=S.sessions[d];Object.keys(recs).forEach(function(sid){var o=byS[sid];if(o){o.total+=recPts(recs[sid]).t;o.days++;}});});
+ S.tests.forEach(function(x){if(weekKey(x.date)!==wk)return;var o=byS[x.sid];if(o){var p=testPts(x.score);o.total+=p;o.ach+=p;}});
+ G.forEach(function(r){var gd=ds.filter(function(d){return r.g.students.some(function(s){return S.sessions[d][s.id];});});
+  r.perfect=gd.length>0&&gd.every(function(d){return r.g.students.every(function(s){var x=S.sessions[d][s.id];return !x||x.a==='p';});});
+  if(r.perfect)r.week=10;r.total=r.week;r.stu.forEach(function(o){r.total+=o.total;});
+  r.n=r.stu.filter(function(o){return o.days||o.ach;}).length||active(r.g).length||1;r.avg=Math.round(r.total/r.n*10)/10;});
+ var f=ds[0]||wk,l=ds[ds.length-1]||addDays(wk,4);var F=fmt(useH()?'HS':'GD');
+ return {groups:G,byS:byS,label:F.format(toD(f))+(l!==f?' – '+F.format(toD(l)):''),classes:ds.length};}
+function reportModel(){var avg=S.settings.rank==='avg',M,sub,isW=UI.rep==='week';
+ if(isW){M=computeWeek(lastWeek());sub=t('نتائج الأسبوع: ','This week: ')+M.label;}
+ else{var months=monthList();var m=months.filter(function(x){return x.k===UI.month;})[0]||months[0];M=compute(m.k);sub=t('نتائج ','Results · ')+m.label;}
+ var key=function(r){return avg?r.avg:r.total;};
+ var rows=M.groups.slice().sort(function(a,b){return key(b)-key(a);}).map(function(r){return {name:r.g.name,color:r.color,v:key(r),star:isW&&r.perfect};});
+ var top=Object.keys(M.byS).map(function(k){return M.byS[k];}).filter(function(o){return o.days||o.ach;}).sort(function(a,b){return b.total-a.total;}).slice(0,3).map(function(o){return {n:o.s.name,g:o.g.name,v:o.total};});
+ return {sub:sub,rows:rows,top:top,avg:avg,week:isW,classes:M.classes};}
+function repToggle(){return '<div class="radio" style="margin-bottom:12px"><button data-act="rep" data-v="month" class="'+(UI.rep!=='week'?'on':'')+'">'+t('الشهر','Month')+'</button><button data-act="rep" data-v="week" class="'+(UI.rep==='week'?'on':'')+'">'+t('هذا الأسبوع','This week')+'</button></div>';}
+function vWeek(){var M=reportModel();var medal=function(i){return i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);};
+ var h='<div class="card"><h3 style="margin-bottom:4px">'+esc(M.sub)+'</h3><p class="muted small" style="margin:0 0 6px">'+N(M.classes)+' '+t('حصص','classes')+(M.avg?' · '+t('متوسط الطالب','avg per student'):'')+'</p>'+
+ M.rows.map(function(r,i){return '<div class="prow" style="--gc:'+r.color+'"><b style="width:28px;text-align:center">'+medal(i)+'</b><span class="dot"></span><bdi class="sp">'+esc(r.name)+'</bdi>'+(r.star?'<span class="pill p">🌹 <span class="num">+10</span></span>':'')+'<b>'+sgn(r.v)+'</b></div>';}).join('')+
+ (M.rows.some(function(r){return r.star;})?'<p class="muted small" style="margin:8px 0 0">🌹 '+t('حضور كامل بدون تأخر طوال الأسبوع','Perfect attendance all week')+' <span class="num">(+10)</span></p>':'')+'</div>';
+ if(M.top.length)h+='<div class="card"><h2>⭐ '+t('أبرز طلاب الأسبوع','Top students this week')+'</h2><div class="toplist">'+M.top.map(function(o,i){return '<div><b class="num" style="width:24px">'+(i+1)+'</b><span class="sp"><bdi>'+esc(o.n)+'</bdi> <span class="muted small">· <bdi>'+esc(o.g)+'</bdi></span></span><b>'+sgn(o.v)+'</b></div>';}).join('')+'</div></div>';
+ return h;}
+function waText(){var M=reportModel();
+ var s='🏆 *'+title()+'*\n_'+M.sub+'_\n\n';
+ M.rows.forEach(function(r,i){s+=(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' *'+r.name+'*: '+(M.avg?r.v+' ('+t('متوسط','average')+')':r.v+' '+t('نقطة','points'))+(r.star?' 🌹':'')+'\n';});
+ if(M.rows.some(function(r){return r.star;}))s+='\n🌹 '+t('حضور كامل بدون تأخر طوال الأسبوع (+10)','Perfect attendance all week (+10)')+'\n';
+ if(M.top.length){s+='\n⭐ _'+(M.week?t('أبرز طلاب الأسبوع:','Top students this week:'):t('أبرز الطلاب:','Top students:'))+'_\n';M.top.forEach(function(o){s+='• '+o.n+' ('+o.g+'): '+o.v+'\n';});}
  return s+'\n'+t('بارك الله في الجميع 🌹','May Allah bless everyone 🌹');}
-
 function vLog(){
  if(!S.groups.length)return vBoard();
  if(!UI.date)UI.date=today();var d=UI.date;var recs=S.sessions[d]||{};
@@ -234,30 +260,29 @@ function doBackup(){var name='halaqah-backup-'+today()+'.json';var f=new File([J
 function shareText(s){try{if(navigator.share){navigator.share({text:s}).catch(function(){});return;}}catch(e){}copyText(t('نتائج المسابقة','Competition results'),s);}
 function shareImage(){var c=drawReport();shareFile(dataURLtoFile(c.toDataURL('image/png'),'results.png'),t('نتائج المسابقة','Competition results'));}
 function drawReport(){
- var months=monthList();var m=months.filter(function(x){return x.k===UI.month;})[0]||months[0];var C=compute(m.k);var avg=S.settings.rank==='avg';
- var R=C.groups.slice().sort(function(a,b){return avg?b.avg-a.avg:b.total-a.total;});
- var top=Object.keys(C.byS).map(function(k){return C.byS[k];}).filter(function(o){return o.days||o.ach;}).sort(function(a,b){return b.total-a.total;}).slice(0,3);
- var W=1080,rowH=132,H=330+R.length*rowH+(top.length?110+top.length*76:0)+90;
+ var M=reportModel();var R=M.rows,top=M.top,avg=M.avg;
+ var W=1080,rowH=132,H=330+R.length*rowH+(top.length?110+top.length*76:0)+(M.week&&R.some(function(r){return r.star;})?60:0)+90;
  var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');var rtl=LANG!=='en';
  var F=function(w,s){return w+' '+s+'px -apple-system,"SF Arabic","SF Pro Display","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif';};
  x.fillStyle='#0f5d4a';x.fillRect(0,0,W,H);
  x.fillStyle='#f2f2f7';rr(x,40,250,W-80,H-290,40);x.fill();
  x.direction=rtl?'rtl':'ltr';var S0=rtl?W-80:80,E0=rtl?80:W-80,al=rtl?'right':'left',ar=rtl?'left':'right';
  x.fillStyle='#fff';x.textAlign=al;x.font=F('800',62);x.fillText(title(),S0,120,W-160);
- x.font=F('500',38);x.fillStyle='rgba(255,255,255,.8)';x.fillText(t('نتائج ','Results · ')+m.label,S0,186,W-160);
- var max=Math.max(1,Math.max.apply(null,R.map(function(r){return avg?r.avg:r.total;})));
- R.forEach(function(r,i){var y=290+i*rowH;var v=avg?r.avg:r.total;
+ x.font=F('500',38);x.fillStyle='rgba(255,255,255,.8)';x.fillText(M.sub,S0,186,W-160);
+ var max=Math.max(1,Math.max.apply(null,R.map(function(r){return r.v;})));
+ R.forEach(function(r,i){var y=290+i*rowH;var v=r.v;
   x.fillStyle='#fff';rr(x,70,y,W-140,rowH-20,28);x.fill();
   x.font=F('400',54);x.textAlign='center';x.fillStyle='#1c1c1e';x.fillText(i<3?['🥇','🥈','🥉'][i]:String(i+1),rtl?W-140:140,y+76);
-  x.textAlign=al;x.font=F('700',42);x.fillStyle='#1c1c1e';x.fillText(r.g.name,rtl?W-200:200,y+62,600);
+  x.textAlign=al;x.font=F('700',42);x.fillStyle='#1c1c1e';x.fillText(r.name+(r.star?'  🌹':''),rtl?W-200:200,y+62,600);
   x.fillStyle='#ececf0';rr(x,rtl?260:200,y+84,W-460,12,6);x.fill();
   x.fillStyle=r.color;var bw=Math.max(12,(W-460)*Math.max(0,v)/max);rr(x,rtl?260+(W-460)-bw:200,y+84,bw,12,6);x.fill();
   x.textAlign=ar;x.font=F('800',52);x.fillStyle='#0f5d4a';x.fillText(String(v),rtl?110:W-110,y+70);
   x.font=F('500',24);x.fillStyle='#6e6e73';x.fillText(avg?t('متوسط','avg'):t('نقطة','pts'),rtl?110:W-110,y+100);});
  var y=290+R.length*rowH+30;
- if(top.length){x.textAlign=al;x.font=F('700',40);x.fillStyle='#1c1c1e';x.fillText('⭐ '+t('أبرز الطلاب','Top students'),S0,y+40);
-  top.forEach(function(o,i){var yy=y+100+i*76;x.textAlign=al;x.font=F('600',36);x.fillStyle='#1c1c1e';x.fillText((i+1)+'. '+o.s.name,S0,yy,560);
-   x.font=F('400',28);x.fillStyle='#6e6e73';x.textAlign=ar;x.fillText(o.g.name+'  ·  '+o.total,E0,yy,330);});}
+ if(M.week&&R.some(function(r){return r.star;})){x.textAlign=al;x.font=F('500',28);x.fillStyle='#6e6e73';x.fillText('🌹 '+t('حضور كامل بدون تأخر طوال الأسبوع (+10)','Perfect attendance all week (+10)'),S0,y+20,W-160);y+=60;}
+ if(top.length){x.textAlign=al;x.font=F('700',40);x.fillStyle='#1c1c1e';x.fillText('⭐ '+(M.week?t('أبرز طلاب الأسبوع','Top students this week'):t('أبرز الطلاب','Top students')),S0,y+40);
+  top.forEach(function(o,i){var yy=y+100+i*76;x.textAlign=al;x.font=F('600',36);x.fillStyle='#1c1c1e';x.fillText((i+1)+'. '+o.n,S0,yy,560);
+   x.font=F('400',28);x.fillStyle='#6e6e73';x.textAlign=ar;x.fillText(o.g+'  ·  '+o.v,E0,yy,330);});}
  x.textAlign='center';x.font=F('500',28);x.fillStyle='#6e6e73';x.fillText(t('بارك الله في الجميع 🌹','May Allah bless everyone 🌹'),W/2,H-70);
  return c;}
 function rr(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
@@ -275,6 +300,7 @@ app.addEventListener('click',function(ev){
  case 'theme':THEME={auto:'light',light:'dark',dark:'auto'}[THEME];try{localStorage.setItem('hc-theme',THEME);}catch(e){}applyTheme();toast(t('المظهر: ','Theme: ')+({auto:t('تلقائي (حسب الجهاز)','Auto (follows device)'),light:t('فاتح','Light'),dark:t('داكن','Dark')})[THEME]);return;
  case 'lang':LANG=LANG==='en'?'ar':'en';try{localStorage.setItem('hc-lang',LANG);}catch(e){}break;
  case 'tab':UI.tab=v;if(v!=='log'&&v!=='board')UI.sub=v;saveUI();resetScroll=true;break;
+ case 'rep':UI.rep=v;saveUI();break;
  case 'toggle':UI.open[v]=!UI.open[v];saveUI();break;
  case 'save':persist();return;
  case 'closemodal':UI.modal=null;break;
