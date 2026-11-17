@@ -10,6 +10,50 @@ var FONT='<meta name="theme-color" content="#f2f2f7"><meta name="apple-mobile-we
 var ART=null,capReady=false,ro=false,dirty=false,publishing=false,saving=false;
 var COLORS=['#0f766e','#b45309','#7c3aed','#be123c','#1d4ed8','#4d7c0f','#0e7490','#a21caf'];
 var DEF={a:'p',b:1,ap:1,r:1,x:0,f:0,fr:0,ini:0,v:0};
+var SB='https://imaguxksitjekaqlfpyc.supabase.co/rest/v1/rpc/',SBK='sb_publishable_X2bxbbBrb_pWlDHgZTu98g_sui_Zgjt';
+var SY=null;try{SY=JSON.parse(localStorage.getItem('hc-sync')||'null');}catch(e){SY=null;}
+var syT=null,syBusy=false,syAgain=false,syApplying=false;
+function saveSY(){try{if(SY)localStorage.setItem('hc-sync',JSON.stringify(SY));else localStorage.removeItem('hc-sync');}catch(e){}}
+function normS(){S.groups=S.groups||[];S.sessions=S.sessions||{};S.tests=S.tests||[];S.rules=S.rules||[];S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||{});}
+function rpc(fn,b){return fetch(SB+fn,{method:'POST',headers:{'apikey':SBK,'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function newCode(){var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',a=new Uint8Array(20),s='';crypto.getRandomValues(a);for(var i=0;i<20;i++)s+=A[a[i]%32];return s;}
+function fmtCode(c){return String(c).replace(/(.{5})(?=.)/g,'$1-');}
+function cleanCode(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function schedSync(ms){if(!SY)return;clearTimeout(syT);syT=setTimeout(syncNow,ms==null?1500:ms);}
+function syncMerge(L,R){R=R||{};var ids={},gid={};
+ L.groups.forEach(function(g){gid[g.id]=g;g.students.forEach(function(s){ids[s.id]=1;});});
+ (R.groups||[]).forEach(function(rg){var g=gid[rg.id];if(!g){g={id:rg.id,name:rg.name,students:[]};L.groups.push(g);gid[g.id]=g;}(rg.students||[]).forEach(function(rs){if(!ids[rs.id]){g.students.push(rs);ids[rs.id]=1;}});});
+ Object.keys(R.sessions||{}).forEach(function(d){var rr=R.sessions[d]||{};Object.keys(rr).forEach(function(sid){if(!ids[sid])return;L.sessions[d]=L.sessions[d]||{};if(!L.sessions[d][sid])L.sessions[d][sid]=rr[sid];});});
+ (R.tests||[]).forEach(function(x){if(ids[x.sid]&&!L.tests.some(function(y){return y.id===x.id||(y.sid===x.sid&&y.date===x.date&&+y.score===+x.score);}))L.tests.push(x);});
+ (R.rules||[]).forEach(function(r){if(!L.rules.some(function(q){return q.id===r.id;}))L.rules.push(r);});
+ var pv=(L.settings.pv||[]).slice();((R.settings||{}).pv||[]).forEach(function(q){if(!pv.some(function(z){return z.k===q.k&&z.from===q.from;}))pv.push(q);});
+ if(pv.length){pv.sort(function(a,b){return a.from<b.from?-1:a.from>b.from?1:0;});L.settings.pv=pv;}
+ return L;}
+function applyS(D,remote){S=D||{};normS();syApplying=!!remote;saveLocal();syApplying=false;var ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render();}
+function syncNow(){if(!SY||syBusy)return;if(!navigator.onLine){SY.err='offline';saveSY();updSync();return;}syBusy=true;SY.err=null;updSync();var d0=SY.dirty||0,p;
+ if(d0)p=rpc('hc_push',{p_code:SY.code,p_data:S,p_base:SY.rev||null,p_create:!SY.rev}).then(function(r){
+  if(r.ok){SY.rev=r.rev;SY.dirty=(SY.dirty===d0)?0:SY.dirty;SY.at=Date.now();if(SY.dirty)syAgain=true;return;}
+  if(r.conflict){applyS(syncMerge(S,r.data),false);SY.rev=r.rev;syAgain=true;return;}
+  if(r.missing){SY.rev=0;syAgain=true;}});
+ else p=rpc('hc_pull',{p_code:SY.code}).then(function(r){
+  if(!r.found){SY.rev=0;SY.dirty=(SY.dirty||0)+1;syAgain=true;return;}
+  if(r.rev>(SY.rev||0)&&!SY.dirty){applyS(r.data,true);SY.rev=r.rev;}else if(r.rev>(SY.rev||0)){syAgain=true;}
+  SY.at=Date.now();});
+ p.catch(function(e){SY.err=String(e&&e.message||e);}).then(function(){syBusy=false;saveSY();updSync();if(syAgain){syAgain=false;schedSync(300);}});}
+function updSync(){if(UI&&UI.tab==='groups'){var ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render();}}
+function ago(ts){var m=Math.round((Date.now()-ts)/60000);if(m<1)return t('الآن','just now');if(m<60)return t('قبل '+m+' دقيقة',m+' min ago');var h=Math.round(m/60);if(h<24)return t('قبل '+h+' س',h+' h ago');return esc(dateLong(ymd(new Date(ts))));}
+function syncCard(){var h='<div class="card"><h2>☁️ '+t('المزامنة السحابية','Cloud sync')+'</h2>';
+ if(!SY){h+='<p class="muted small">'+t('تحفظ نسخة من البيانات على الإنترنت تلقائيًا بعد كل تغيير، وتُبقي الجوال والآيباد متطابقين. تعمل بدون إنترنت وتُزامن عند عودته.','Saves a copy online automatically after every change, and keeps a phone and an iPad in step. It still works offline and syncs when the internet is back.')+'</p>'+
+  '<button class="btn pri" data-act="sy-on" style="width:100%">'+t('تشغيل المزامنة','Turn on sync')+'</button>'+
+  '<label class="f" style="margin-top:14px">'+t('تستخدمها على جهاز آخر؟ أدخل رمز المزامنة:','Already using it on another device? Enter its sync code:')+'</label><div class="row" style="flex-wrap:nowrap"><input type="text" id="sy-in" dir="ltr" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" style="flex:1;min-width:0" class="code"><button class="btn" data-act="sy-join">'+t('ربط','Connect')+'</button></div>';
+  if(UI.syj)h+='<div class="banner" style="margin:12px 0 0">'+t('على هذا الجهاز بيانات بالفعل. ماذا تريد؟','This device already has data. What should happen?')+'<div class="row" style="margin-top:8px"><button class="btn pri" data-act="sy-comb">'+t('دمج الاثنين','Combine both')+'</button><button class="btn" data-act="sy-rep">'+t('استخدام نسخة السحابة فقط','Use the cloud copy only')+'</button><button class="btn" data-act="sy-cancel">'+t('إلغاء','Cancel')+'</button></div></div>';
+  return h+'</div>';}
+ var st=syBusy?'⏳ '+t('جارٍ المزامنة…','Syncing…'):SY.err==='offline'?'📴 '+t('بدون إنترنت — ستتم المزامنة عند الاتصال','Offline — will sync when connected'):SY.err?'⚠️ '+t('تعذّرت المزامنة، ستُعاد المحاولة','Couldn’t sync, will retry')+' <span class="muted small">('+esc(SY.err)+')</span>':SY.dirty?'⏳ '+t('بانتظار المزامنة','Waiting to sync'):SY.at?'✓ '+t('تمت المزامنة ','Synced ')+ago(SY.at):'';
+ h+='<p style="margin:0 0 10px">'+st+'</p>'+
+ (UI.syc?'<p class="muted small" style="margin:0 0 4px">'+t('رمز المزامنة — أدخله على الجهاز الآخر. أي شخص لديه الرمز يستطيع رؤية البيانات وتعديلها، فاحتفظ به لنفسك.','Sync code — enter it on the other device. Anyone with this code can see and change the data, so keep it to yourself.')+'</p><div class="row" style="flex-wrap:nowrap;align-items:center"><span class="code sp">'+fmtCode(SY.code)+'</span><button class="btn sm" data-act="sy-copy">'+t('نسخ','Copy')+'</button></div>':'<button class="btn sm" data-act="sy-show">🔑 '+t('إظهار رمز المزامنة','Show sync code')+'</button>')+
+ '<div class="row" style="margin-top:12px"><button class="btn sp" data-act="sy-now">↻ '+t('مزامنة الآن','Sync now')+'</button><button class="btn danger '+(UI.arm==='sy-off'?'arm':'')+'" data-act="sy-off">'+(UI.arm==='sy-off'?t('تأكيد الإيقاف؟','Confirm turn off?'):t('إيقاف على هذا الجهاز','Turn off here'))+'</button></div>';
+ return h+'</div>';}
+
 var PDEF={on:5,late:-1,abs:-2,b:3,ap:3,fr:1,ini:1,r:5,x:1,f:1,v:-50,grp:5,test:10},PNEG={late:1,abs:1,v:1},_pvr=null,_pvc={};
 function PV(d){var L=S.settings.pv;if(_pvr!==L){_pvr=L;_pvc={};}d=d||today();if(_pvc[d])return _pvc[d];var o=Object.assign({},PDEF);(L||[]).forEach(function(p){if(p.from<=d)o[p.k]=p.v;});return _pvc[d]=o;}
 function pfmt(n){return n>0?'+'+n:n<0?'−'+Math.abs(n):'0';}
@@ -236,7 +280,7 @@ function vLog(){
  '<div class="search"><input type="search" id="q" autocomplete="off" enterkeyhint="search" placeholder="🔍 '+t('ابحث عن طالب…','Search for a student…')+'"><div id="qbox"></div></div>'+
  '<div class="radio" style="margin-top:12px"><button data-act="lm" data-v="stu" class="'+(UI.lm!=='rule'?'on':'')+'">👤 '+t('حسب الطالب','By student')+'</button><button data-act="lm" data-v="rule" class="'+(UI.lm==='rule'?'on':'')+'">📋 '+t('حسب البند','By rule')+'</button></div>'+
  (S.sessions[d]?'<p class="small muted" style="margin:8px 0 0">✓ '+t('هذه الحصة مسجّلة — يمكنك تعديلها.','This class is recorded — you can edit it.')+'</p>':'<p class="small muted" style="margin:8px 0 0">'+t('حصة جديدة. الإعداد الافتراضي: حاضر في الوقت مع السلوك والمظهر والتسميع. عدّل فقط ما يختلف ثم اضغط «حفظ الحصة».','New class. Everyone starts as on time, with behaviour, appearance and recitation earned. Change only what’s different, then tap “Save class”.')+'</p>')+'</div>';
- var lb2=lastBackup();if(Object.keys(S.sessions).length>=3&&(!lb2||(new Date()-toD(lb2))/864e5>30))h+='<div class="banner row"><span class="sp">💾 '+t('لم تحفظ نسخة احتياطية منذ أكثر من شهر.','You haven’t saved a backup in over a month.')+'</span><button class="btn sm" data-act="backup">'+t('احفظ الآن','Back up now')+'</button></div>';
+ var lb2=lastBackup();if(!SY&&Object.keys(S.sessions).length>=3&&(!lb2||(new Date()-toD(lb2))/864e5>30))h+='<div class="banner row"><span class="sp">💾 '+t('لم تحفظ نسخة احتياطية منذ أكثر من شهر.','You haven’t saved a backup in over a month.')+'</span><button class="btn sm" data-act="backup">'+t('احفظ الآن','Back up now')+'</button></div>';
  var ATT=[['p',t('حاضر','Present')],['l',t('متأخر','Late')],['e',t('غائب بعذر','Excused')],['u',t('بدون عذر','Unexcused')]];
   var ATTN={p:t('في الوقت','On time'),l:t('متأخر','Late'),e:t('غائب بعذر','Excused'),u:t('غائب بدون عذر','Unexcused')};
  if(UI.lm==='rule')h+=ruleView(gs,recs);else gs.forEach(function(g){var ci=S.groups.indexOf(g);var act=active(g);var sum=0;var cnt={p:0,l:0,e:0,u:0};var gOpen=!!UI.og[g.id];
@@ -302,6 +346,7 @@ function vGroups(){
  '<p class="muted small" style="margin:8px 0 0">'+t('«استعادة» تستبدل كل البيانات. «استيراد» يضيف الحصص والطلاب من الملف ويُبقي كل ما على هذا الجهاز كما هو.','“Restore” replaces all data. “Import” adds the classes and students from the file and keeps everything on this device as it is.')+'</p>'+
  (UI.pendImp?'<div class="banner" style="margin:12px 0 0">'+t('سيُضاف من الملف: ','From the file, this will add: ')+N(UI.pendImp.c.r)+' '+t('سجل حصة','class records')+' · '+N(UI.pendImp.c.t)+' '+t('اختبار','tests')+' · '+N(UI.pendImp.c.s)+' '+t('طالب جديد','new students')+' · '+N(UI.pendImp.c.g)+' '+t('مجموعة جديدة','new groups')+(UI.pendImp.c.k?'<br>'+N(UI.pendImp.c.k)+' '+t('سجل موجود مسبقًا على هذا الجهاز سيبقى كما هو.','records already on this device will stay as they are.'):'')+'<div class="row" style="margin-top:8px"><button class="btn pri" data-act="importok">'+t('إضافة','Add')+'</button><button class="btn" data-act="importcancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+
  (UI.pending?'<div class="banner" style="margin:12px 0 0">'+t('الملف يحتوي على ','The file has ')+N(UI.pending.groups.length)+' '+t('مجموعات و','groups and ')+N(Object.keys(UI.pending.sessions||{}).length)+' '+t('حصص. سيستبدل البيانات الحالية.',' classes. It will replace the current data.')+'<div class="row" style="margin-top:8px"><button class="btn danger arm" data-act="restoreok">'+t('استبدال البيانات','Replace data')+'</button><button class="btn" data-act="restorecancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+'</div>';
+  h+=syncCard();
  return h+(UI.sm?stuSheet():'');}
 function smKeep(){var e=document.getElementById('sm-name');if(e&&UI.sm)UI.sm.n=e.value;}
 function stuSheet(){var m=UI.sm,f=findStu(m.id);if(!f)return '';var s=f.s,cur=f.g,o=compute(monthKey(today())).byS[s.id],pts=o?o.total:0,tg=m.g||cur.id,tgn=(S.groups.filter(function(x){return x.id===tg;})[0]||cur).name;
@@ -336,7 +381,7 @@ function vRules(){var ed=!!UI.re,rr=function(a,k){var v=k==='e'?0:PV()[k];return
 
 /* ---------- actions ---------- */
 function touch(){saveLocal();}
-function saveLocal(){try{localStorage.setItem('hc-data',JSON.stringify(S));}catch(e){toast(t('تعذّر الحفظ على الجهاز','Couldn’t save on this device'));}}
+function saveLocal(){try{localStorage.setItem('hc-data',JSON.stringify(S));}catch(e){toast(t('تعذّر الحفظ على الجهاز','Couldn’t save on this device'));}if(SY&&!syApplying){SY.dirty=(SY.dirty||0)+1;saveSY();schedSync();}}
 function setRec(sid,patch){var d=UI.date;S.sessions[d]=S.sessions[d]||{};var cur=S.sessions[d][sid]||Object.assign({},DEF);S.sessions[d][sid]=Object.assign(cur,patch);touch();}
 function shownGroups(){return S.groups.filter(function(g){return UI.gf==='all'||g.id===UI.gf;});}
 function persist(msg){saveLocal();saveUI();toast(msg||t('تم الحفظ ✓','Saved ✓'));}
@@ -434,6 +479,18 @@ app.addEventListener('click',function(ev){
   if(pc){var rc=(S.rules||[]).filter(function(q){return q.id===pk.slice(2);})[0];if(rc){var nv=rc.pts<0?-pn:pn;if(nv!==rc.pts){rc.pts=nv;Object.keys(S.sessions).forEach(function(dd){if(dd<td)return;var rs=S.sessions[dd];Object.keys(rs).forEach(function(q){if(rs[q].cx&&rs[q].cx[rc.id]!==undefined)rs[q].cx[rc.id]=nv;});});touch();toast(t('تم تغيير النقاط من اليوم ✓','Points changed from today ✓'));}}}
   else{var nv2=PNEG[pk]?-pn:pn;if(nv2!==PV()[pk]){S.settings.pv=(S.settings.pv||[]).filter(function(p){return !(p.k===pk&&p.from===td);}).concat([{k:pk,v:nv2,from:td}]);touch();toast(t('تم تغيير النقاط من اليوم ✓','Points changed from today ✓'));}}
   UI.pe=null;break;
+ case 'sy-on':SY={code:newCode(),rev:0,dirty:1};saveSY();UI.syc=true;syncNow();break;
+ case 'sy-show':UI.syc=!UI.syc;break;
+ case 'sy-copy':try{navigator.clipboard.writeText(fmtCode(SY.code)).then(function(){toast(t('نُسخ الرمز ✓','Code copied ✓'));});}catch(e){}return;
+ case 'sy-now':if(SY){SY.err=null;syncNow();}return;
+ case 'sy-off':if(UI.arm==='sy-off'){SY=null;saveSY();UI.arm=null;UI.syc=false;toast(t('أُوقفت المزامنة على هذا الجهاز','Sync turned off on this device'));}else UI.arm='sy-off';break;
+ case 'sy-cancel':UI.syj=null;break;
+ case 'sy-join':var jc=cleanCode((document.getElementById('sy-in')||{}).value);if(jc.length!==20){toast(t('الرمز يتكون من 20 حرفًا ورقمًا','The code has 20 letters and digits'));return;}if(!navigator.onLine){toast(t('يحتاج الربط إلى إنترنت','Connecting needs the internet'));return;}
+  rpc('hc_pull',{p_code:jc}).then(function(r){if(!r.found){toast(t('لا توجد بيانات لهذا الرمز','No data found for this code'));return;}
+   if(!Object.keys(S.sessions).length&&!S.groups.length){SY={code:jc,rev:r.rev,dirty:0,at:Date.now()};saveSY();applyS(r.data,true);toast(t('تم الربط ✓','Connected ✓'));}
+   else{UI.syj={code:jc,rev:r.rev,data:r.data};render();}}).catch(function(){toast(t('تعذّر الاتصال، حاول مرة أخرى','Couldn’t connect, try again'));});return;
+ case 'sy-rep':var jr=UI.syj;UI.syj=null;SY={code:jr.code,rev:jr.rev,dirty:0,at:Date.now()};saveSY();applyS(jr.data,true);toast(t('تم الربط ✓','Connected ✓'));return;
+ case 'sy-comb':var jm=UI.syj;UI.syj=null;SY={code:jm.code,rev:jm.rev,dirty:1};saveSY();applyS(syncMerge(S,jm.data),false);toast(t('تم الدمج والربط ✓','Combined and connected ✓'));return;
  case 'redit':UI.re=!UI.re;UI.mr=null;UI.arm=null;break;
  case 'addr-open':UI.mr={sec:+v,neg:+v===7};break;
  case 'mr-close':UI.mr=null;break;
@@ -501,5 +558,6 @@ app.addEventListener('change',function(ev){var el=ev.target;var a=el.dataset.act
 
 capReady=true;
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
-render();
+window.addEventListener('online',function(){schedSync(200);});document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')schedSync(200);});setInterval(function(){if(document.visibilityState==='visible')schedSync(0);},60000);
+render();schedSync(400);
 })();

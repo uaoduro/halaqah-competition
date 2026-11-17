@@ -183,3 +183,4 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .linkd{border:0;background:transparent;color:var(--red,#c0392b);font:inherit;font-size:14px;padding:4px 0}
 .pbtn{border:1.5px solid var(--line);background:var(--card2);border-radius:999px;padding:3px 10px;font:inherit;font-weight:700;display:inline-flex;align-items:center;gap:4px;flex:none}
 .pfx{font-size:22px}.pfx.neg{color:var(--red)}.pfx.pos{color:var(--green)}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:17px;letter-spacing:.5px;direction:ltr;unicode-bidi:isolate;text-align:left}
