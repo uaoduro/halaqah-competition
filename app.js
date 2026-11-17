@@ -3,7 +3,7 @@
 var S={};try{S=JSON.parse(localStorage.getItem('hc-data')||'{}')||{};}catch(e){S={};}
 var LS_OK=true;try{localStorage.setItem('hc-t','1');localStorage.removeItem('hc-t');}catch(e){LS_OK=false;}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
-S.groups=S.groups||[];S.sessions=S.sessions||{};S.tests=S.tests||[];
+S.groups=S.groups||[];S.sessions=S.sessions||{};S.tests=S.tests||[];S.rules=S.rules||[];
 var DEF_TITLE='مسابقة الحلقة الشهرية';
 S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||{});
 var FONT='<meta name="theme-color" content="#f2f2f7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">';
@@ -11,9 +11,9 @@ var ART=null,capReady=false,ro=false,dirty=false,publishing=false,saving=false;
 var COLORS=['#0f766e','#b45309','#7c3aed','#be123c','#1d4ed8','#4d7c0f','#0e7490','#a21caf'];
 var DEF={a:'p',b:1,ap:1,r:1,x:0,f:0,fr:0,ini:0,v:0};
 var app=document.getElementById('app');
-var UI={lm:'stu',ro:{},tab:'log',sub:'past',month:null,date:null,gf:'all',open:{},og:{},os:{},arm:null,modal:null};
+var UI={lm:'rule',ro:{},tab:'log',sub:'past',month:null,date:null,gf:'all',open:{},og:{},os:{},arm:null,modal:null};
 try{var sv=JSON.parse(sessionStorage.getItem('hc-ui')||'null');if(sv)Object.assign(UI,sv,{arm:null,modal:null});}catch(e){}
-UI.og=UI.og||{};UI.os=UI.os||{};UI.ro=UI.ro||{};UI.lm=UI.lm||'stu';delete UI.cg;
+UI.og=UI.og||{};UI.os=UI.os||{};UI.ro=UI.ro||{};UI.lm=UI.lm||'rule';delete UI.cg;
 function saveUI(){try{sessionStorage.setItem('hc-ui',JSON.stringify({lm:UI.lm,ro:UI.ro,rep:UI.rep,sub:UI.sub,tab:UI.tab,month:UI.month,date:UI.date,gf:UI.gf,open:UI.open,og:UI.og,os:UI.os}));}catch(e){}}
 
 /* ---------- language ---------- */
@@ -53,7 +53,7 @@ function testPts(sc){sc=+sc;return sc>=95?10:0;}
 function gBonus(g,d){var recs=S.sessions[d]||{},any=false,all=true;g.students.forEach(function(s){var x=recs[s.id];if(!x)return;any=true;if(x.a!=='p'&&x.a!=='l')all=false;});return any&&all?5:0;}
 function recPts(r){var o={att:0,ba:0,rec:0,t:0};if(!r)return o;
  if(r.a==='u'){o.att=-2;}else if(r.a==='e'){}else{o.att=r.a==='l'?-1:5;o.ba=(r.b?3:0)+(r.ap?3:0)+(r.fr?1:0)+(r.ini?1:0);o.rec=(r.r?5:0)+(+r.x||0)+(r.f?1:0);}
- if(r.v)o.ba-=50;
+ if(r.v)o.ba-=50;if(r.cx)for(var ck in r.cx)o.ba+=(+r.cx[ck]||0);
  o.t=o.att+o.ba+o.rec;return o;}
 function findStu(id){var f=null;S.groups.forEach(function(g){g.students.forEach(function(s){if(s.id===id)f={s:s,g:g};});});return f;}
 function active(g){return g.students.filter(function(s){return !s.arc;});}
@@ -147,7 +147,7 @@ function bd(g,inP){var o={beh:0,rec:0,oth:0,add:0,ded:0};
   g.students.forEach(function(s){var r=recs[s.id];if(!r)return;
    if(r.a==='u')o.ded+=2;else if(r.a==='l')o.ded+=1;
    if(r.a==='p'||r.a==='l'){if(r.a==='p')o.oth+=5;o.beh+=(r.b?3:0)+(r.ap?3:0);o.rec+=r.r?5:0;o.oth+=r.fr?1:0;o.add+=(+r.x||0)+(r.f?1:0)+(r.ini?1:0);}
-   if(r.v)o.ded+=50;});
+   if(r.v)o.ded+=50;if(r.cx)for(var ck2 in r.cx){var cv2=+r.cx[ck2]||0;if(cv2>0)o.add+=cv2;else o.ded-=cv2;}});
   o.oth+=gBonus(g,d);});
  S.tests.forEach(function(x){if(!inP(x.date))return;if(g.students.some(function(s){return s.id===x.sid;}))o.add+=testPts(x.score);});
  o.tot=o.beh+o.rec+o.oth+o.add-o.ded;return o;}
@@ -178,20 +178,40 @@ function searchHTML(q){if(!norm(q))return '';var hits=searchHits(q);
  if(!hits.length)return '<div class="qres"><div class="qnone">'+t('لا يوجد طالب بهذا الاسم','No student with that name')+'</div></div>';
  return '<div class="qres">'+hits.map(function(h){return '<button class="qitem" data-act="pick" data-v="'+h.s.id+'"><bdi>'+esc(h.s.name)+'</bdi><span class="muted small"> · <bdi>'+esc(h.g.name)+'</bdi></span></button>';}).join('')+'</div>';}
 var RL=[['l','att','⏳','متأخر','Late','−1'],['u','att','🚫','غائب بدون عذر','Absent, no excuse','−2'],['e','att','📝','غائب بعذر','Absent, excused','0'],['fr','on','🕌','الصف الأول','First row','+1'],['f','on','🤝','المتابعة مع الزميل','Following a partner','+1'],['ini','on','💡','مبادرة','Initiative','+1'],['x','cnt','➕','درس إضافي','Extra lesson','+1'],['b','off','😇','السلوك','Behaviour','−3'],['ap','off','👔','المظهر','Appearance','−3'],['r','off','📖','التسميع','Recitation','−5'],['v','on','⛔','مخالفة جسيمة','Serious violation','−50']];
-function ruleOf(id){return RL.filter(function(R){return R[0]===id;})[0];}
-function rMarked(R,x){if(R[1]==='att')return x.a===R[0];if(R[1]==='cnt')return (+x.x||0)>0;if(R[1]==='off')return !x[R[0]];return !!x[R[0]];}
+function rulesAll(){var c=(S.rules||[]).filter(function(r){return !r.arc;}).map(function(r){return [r.id,'cx',r.icon||(r.pts>0?'⭐':'⚠️'),r.name,r.name,(r.pts>0?'+':'−')+Math.abs(r.pts),r.pts];});return RL.concat(c);}
+function ruleOf(id){return rulesAll().filter(function(R){return R[0]===id;})[0];}
+function rMarked(R,x){if(R[1]==='att')return x.a===R[0];if(R[1]==='cnt')return (+x.x||0)>0;if(R[1]==='off')return !x[R[0]];if(R[1]==='cx')return !!(x.cx&&x.cx[R[0]]!==undefined);return !!x[R[0]];}
+function rNeg(R){return R[0]==='v'||(R[1]==='cx'&&R[6]<0);}
+function ruleSections(){var A=rulesAll(),pick=function(f){return A.filter(f);};
+ return [[t('الحضور','Attendance'),pick(function(R){return R[1]==='att';})],
+  [t('نقاط إضافية — اضغط على من حققها','Extra points — tap who earned them'),pick(function(R){return (R[1]==='on'&&R[0]!=='v')||R[1]==='cnt'||(R[1]==='cx'&&R[6]>0);})],
+  [t('تُحسب للجميع — اضغط على من لم يحققها','Given to everyone — tap who missed it'),pick(function(R){return R[1]==='off';})],
+  [t('خصومات','Deductions'),pick(rNeg)]];}
+function cxChips(x,sid,pos){return (S.rules||[]).filter(function(r){return !r.arc&&(pos?r.pts>0:r.pts<0);}).map(function(r){var m=!!(x.cx&&x.cx[r.id]!==undefined);return '<button class="chip '+(m?(pos?'on':'bad'):'')+'" data-act="rt" data-k="'+r.id+'" data-s="'+sid+'">'+esc(r.icon||(pos?'⭐':'⚠️'))+' <bdi>'+esc(r.name)+'</bdi> <span class="num">'+(pos?'+':'−')+Math.abs(r.pts)+'</span></button>';}).join('');}
 function ruleView(gs,recs){
- var h='<p class="muted small" style="margin:0 0 10px">'+t('افتح البند ثم اضغط على أسماء الطلاب. السلوك والمظهر والتسميع محسوبة للجميع: اضغط على من لم يحققها.','Open a rule, then tap student names. Behaviour, appearance and recitation are given to everyone: tap who didn’t earn them.')+'</p>';
- RL.forEach(function(R){var id=R[0],ty=R[1],open=!!UI.ro[id],cnt=0;
-  var body=gs.map(function(g){var ci=S.groups.indexOf(g),act=active(g);if(!act.length)return '';
-   return '<div class="ngl" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi>'+esc(g.name)+'</bdi></div><div class="nchips">'+act.map(function(s){var x=recs[s.id]||DEF,m=rMarked(R,x);if(m)cnt++;
-     var ab=x.a==='e'||x.a==='u',dim=ab&&ty!=='att'&&id!=='v',armed=id==='v'&&UI.arm==='v-'+s.id;
-     var cls=!m?'':id==='v'?'bad':(ty==='on'||ty==='cnt')?'on':id==='l'?'late':id==='e'?'exc':'bad';
-     return '<button class="nchip '+cls+(dim?' dim':'')+(armed?' arm':'')+'" data-act="rt" data-k="'+id+'" data-s="'+s.id+'"><bdi>'+esc(s.name)+'</bdi>'+(ty==='cnt'&&(+x.x||0)>1?' <span class="num">×'+x.x+'</span>':'')+(armed?' · '+t('اضغط للتأكيد','tap to confirm'):'')+'</button>';}).join('')+'</div>';}).join('');
-  var sub=ty==='att'?t('اضغط على الطالب لتحديده، ومرة أخرى لإلغائه','Tap a student to mark them, again to undo'):id==='v'?t('اضغط مرتين للتأكيد','Tap twice to confirm'):ty==='off'?t('الجميع يحصل عليه — اضغط على من لم يحققه','Everyone gets it — tap who didn’t'):ty==='cnt'?t('اضغط على من سمّع درسًا إضافيًا (لأكثر من درس استخدم «حسب الطالب»)','Tap who recited an extra lesson (for more than one, use “By student”)'):t('اضغط على من حققه','Tap who did it');
-  var pc=id==='v'?'u':(ty==='on'||ty==='cnt')?'p':id==='l'?'l':id==='e'?'e':'u';
-  h+='<div class="card rcard"><div class="row rhead" data-act="rhead" data-v="'+id+'"><span class="chev">'+(open?'▾':(LANG==='en'?'▸':'◂'))+'</span><b>'+R[2]+' '+t(R[3],R[4])+'</b><span class="muted small num">'+R[5]+'</span><span class="sp"></span>'+(cnt?'<span class="pill '+pc+'">'+N(cnt)+'</span>':'')+'</div>'+(open?'<p class="muted small" style="margin:8px 0 2px">'+sub+'</p>'+body:'')+'</div>';});
+ var h='<div class="card rsum">'+gs.map(function(g){var ci=S.groups.indexOf(g),act=active(g);if(!act.length)return '';var pts=0,nl=0,na=0;
+  act.forEach(function(s){var x=recs[s.id]||DEF;pts+=recPts(x).t;if(x.a==='l')nl++;if(x.a==='e'||x.a==='u')na++;});if(!na)pts+=5;
+  return '<div class="prow" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi class="sp">'+esc(g.name)+'</bdi>'+(nl?'<span class="pill l">'+N(nl)+' '+t('متأخر','late')+'</span>':'')+(na?'<span class="pill u">'+N(na)+' '+t('غائب','absent')+'</span>':'<span class="pill p">👥 <span class="num">+5</span></span>')+'<b>'+sgn(pts)+'</b></div>';}).join('')+'</div>';
+ ruleSections().forEach(function(sec){if(!sec[1].length)return;
+  h+='<div class="rsec">'+sec[0]+'</div><div class="card rlist">'+sec[1].map(function(R){return ruleRow(R,gs,recs);}).join('')+'</div>';});
  return h;}
+function ruleRow(R,gs,recs){var id=R[0],ty=R[1],open=!!UI.ro[id],cnt=0,neg=rNeg(R),avail=0;
+ var body=gs.map(function(g){var ci=S.groups.indexOf(g),act=active(g);if(!act.length)return '';
+  return '<div class="ngl" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi>'+esc(g.name)+'</bdi></div><div class="nchips">'+act.map(function(s){var x=recs[s.id]||DEF,m=rMarked(R,x);if(m)cnt++;
+   var ab=x.a==='e'||x.a==='u',dim=ab&&ty!=='att'&&!neg,armed=id==='v'&&UI.arm==='v-'+s.id;if(!dim)avail++;
+   var cls=!m?'':neg?'bad':(ty==='on'||ty==='cnt'||ty==='cx')?'on':id==='l'?'late':id==='e'?'exc':'bad';
+   return '<button class="nchip '+cls+(dim?' dim':'')+(armed?' arm':'')+'" data-act="rt" data-k="'+id+'" data-s="'+s.id+'">'+(m&&!armed?'<span class="ck">✓</span>':'')+'<bdi>'+esc(s.name)+'</bdi>'+(ty==='cnt'&&(+x.x||0)>1?' <span class="num">×'+x.x+'</span>':'')+(armed?' · '+t('اضغط للتأكيد','tap to confirm'):'')+'</button>';}).join('')+'</div>';}).join('');
+ var sub=ty==='att'?t('اضغط على الطالب لتحديده، ومرة أخرى لإلغائه','Tap a student to mark them, again to undo'):id==='v'?t('اضغط مرتين للتأكيد','Tap twice to confirm'):ty==='off'?t('الجميع يحصل عليه — اضغط على من لم يحققه','Everyone gets it — tap who didn’t'):ty==='cnt'?t('لأكثر من درس استخدم «حسب الطالب»','For more than one lesson, use “By student”'):neg?t('اضغط على من يُخصم منه','Tap who loses the points'):t('اضغط على من حققه','Tap who did it');
+ var pc=neg?'u':(ty==='on'||ty==='cnt'||ty==='cx')?'p':id==='l'?'l':id==='e'?'e':'u';
+ var pcls=R[5].charAt(0)==='+'?'pos':R[5]==='0'?'':'neg';
+ var bulk='<div class="rbulk">'+(!neg&&cnt<avail?'<button class="btn sm" data-act="rall" data-k="'+id+'" data-v="sel">✓ '+t('تحديد الكل','Select all')+'</button>':'')+(cnt?'<button class="btn sm" data-act="rall" data-k="'+id+'" data-v="clr">✕ '+t('إلغاء تحديد الكل','Unselect all')+'</button>':'')+'</div>';
+ return '<div class="rrow'+(open?' open':'')+'"><div class="rhead" data-act="rhead" data-v="'+id+'"><span class="ric">'+R[2]+'</span><span class="rname">'+(ty==='cx'?esc(R[3]):t(R[3],R[4]))+'</span><span class="rpts num '+pcls+'">'+R[5]+'</span><span class="sp"></span>'+(cnt?'<span class="pill '+pc+'">'+N(cnt)+'</span>':'')+'<span class="chev">'+(open?'▾':(LANG==='en'?'▸':'◂'))+'</span></div>'+(open?'<div class="rbody"><p class="muted small" style="margin:0 0 8px">'+sub+'</p>'+bulk+body+'</div>':'')+'</div>';}
+function rulesCard(){var R=(S.rules||[]).filter(function(r){return !r.arc;}),plus=UI.crt!=='minus',f=UI.crf||{};
+ return '<div class="card"><h2>🧩 '+t('بنود إضافية','Custom rules')+'</h2><p class="muted small" style="margin-top:-6px">'+t('أضف بندًا يظهر في «تسجيل الحصة». تُحفظ نقاط البند مع كل تحديد، فلا تتغير الحصص السابقة عند إضافة بند أو إزالته.','Add a rule that appears in “Record class”. Its points are saved with each mark, so earlier classes never change when a rule is added or removed.')+'</p>'+
+ (R.length?'<ul class="list">'+R.map(function(r){return '<li><span>'+esc(r.icon||'')+'</span><bdi class="sp">'+esc(r.name)+'</bdi>'+sgn(r.pts)+'<button class="btn sm danger '+(UI.arm==='r-'+r.id?'arm':'')+'" data-act="delrule" data-v="'+r.id+'">'+(UI.arm==='r-'+r.id?t('تأكيد الإزالة؟','Confirm remove?'):t('إزالة','Remove'))+'</button></li>';}).join('')+'</ul>':'')+
+ '<div class="radio" style="margin:12px 0 8px"><button data-act="crt" data-v="plus" class="'+(plus?'on':'')+'">➕ '+t('مكافأة','Bonus')+'</button><button data-act="crt" data-v="minus" class="'+(!plus?'on':'')+'">➖ '+t('خصم','Deduction')+'</button></div>'+
+ '<div class="row"><input type="text" id="cr-icon" value="'+esc(f.i||'')+'" placeholder="'+(plus?'⭐':'⚠️')+'" style="width:58px;text-align:center"><input type="text" id="cr-name" dir="auto" value="'+esc(f.n||'')+'" placeholder="'+t('اسم البند','Rule name')+'" style="flex:1;min-width:140px"><input type="number" id="cr-pts" value="'+esc(f.p||'')+'" min="1" max="100" inputmode="numeric" placeholder="'+t('النقاط','Points')+'" style="width:92px"></div>'+
+ '<div class="row" style="margin-top:8px"><button class="btn pri" data-act="addrule">'+t('إضافة البند','Add rule')+'</button><span class="muted small">'+t('يُحتسب من الآن فصاعدًا','Counts from now on')+'</span></div></div>';}
 function vLog(){
  if(!S.groups.length)return vBoard();
  if(!UI.date)UI.date=today();var d=UI.date;var recs=S.sessions[d]||{};
@@ -206,7 +226,7 @@ function vLog(){
   var ATTN={p:t('في الوقت','On time'),l:t('متأخر','Late'),e:t('غائب بعذر','Excused'),u:t('غائب بدون عذر','Unexcused')};
  if(UI.lm==='rule')h+=ruleView(gs,recs);else gs.forEach(function(g){var ci=S.groups.indexOf(g);var act=active(g);var sum=0;var cnt={p:0,l:0,e:0,u:0};var gOpen=!!UI.og[g.id];
   var cards=act.map(function(s){var r=recs[s.id];var x=r||DEF;var p=recPts(x);sum+=p.t;cnt[x.a]++;var ab=x.a==='e'||x.a==='u';var so=!!UI.os[s.id];
-   var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 ✗</span>';if(x.fr)flags+='<span class="flag">🕌 +1</span>';if(x.ini)flags+='<span class="flag">💡 +1</span>';if(!x.r)flags+='<span class="flag bad">📖 ✗</span>';if(x.f)flags+='<span class="flag">🤝 +1</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';}if(x.v)flags+='<span class="flag bad">⛔ −50</span>';
+   var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 ✗</span>';if(x.fr)flags+='<span class="flag">🕌 +1</span>';if(x.ini)flags+='<span class="flag">💡 +1</span>';if(!x.r)flags+='<span class="flag bad">📖 ✗</span>';if(x.f)flags+='<span class="flag">🤝 +1</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';}if(x.v)flags+='<span class="flag bad">⛔ −50</span>';if(x.cx)Object.keys(x.cx).forEach(function(k){var cr0=(S.rules||[]).filter(function(q){return q.id===k;})[0],cv=+x.cx[k]||0;flags+='<span class="flag'+(cv<0?' bad':'')+'">'+esc(cr0?cr0.icon||'':'')+' <span class="num">'+(cv>0?'+':'−')+Math.abs(cv)+'</span></span>';});
    var head='<div class="stu-h" data-act="stog" data-v="'+s.id+'"><span class="nm"><bdi>'+esc(s.name)+'</bdi></span>'+(so?'':'<span class="pill '+x.a+'">'+ATTN[x.a]+'</span>'+flags)+'<span class="sp"></span><span class="pts">'+sgn(p.t)+'</span><span class="chev">'+(so?'▴':'▾')+'</span></div>';
    if(!so)return '<div id="stu-'+s.id+'" class="stu col '+(r?'':'new ')+'">'+head+'<div class="hint">'+t('اضغط على الاسم لفتح خيارات الطالب','Tap the name to open this student’s options')+'</div></div>';
    return '<div id="stu-'+s.id+'" class="stu '+(r?'':'new ')+(ab?'abs':'')+'">'+head+'<div class="hint">'+t('اختر حالة الحضور بضغطة · اضغط على أي خيار مرة لإلغائه ومرة أخرى لإعادته (أخضر = نقاط، أحمر = خصم) · استخدم + و − للدروس الإضافية · اضغط على الاسم لطيّ البطاقة','Tap one attendance status · Tap any option once to turn it off, again to turn it back on (green = points, red = deduction) · Use + and − for extra lessons · Tap the name to fold the card')+'</div>'+
@@ -216,9 +236,9 @@ function vLog(){
    '<button class="chip '+(x.fr?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="fr">🕌 '+t('الصف الأول','First row')+' +1</button>'+
    '<button class="chip '+(x.r?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="r">📖 '+t('التسميع','Recitation')+' +5</button>'+
    '<button class="chip '+(x.f?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="f">🤝 '+t('المتابعة','Partner')+' +1</button>'+
-   '<button class="chip '+(x.ini?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="ini">💡 '+t('مبادرة','Initiative')+' +1</button>'+
+   '<button class="chip '+(x.ini?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="ini">💡 '+t('مبادرة','Initiative')+' +1</button>'+cxChips(x,s.id,true)+
    '<span class="stepper '+(x.x?'on':'')+'"><button data-act="ex" data-s="'+s.id+'" data-v="-1" aria-label="−">−</button><span>➕ '+t('درس إضافي','Extra lesson')+' '+N(x.x||0)+'</span><button data-act="ex" data-s="'+s.id+'" data-v="1" aria-label="+">+</button></span></div>'+
-   '<div class="chips" style="margin-top:8px"><button class="chip '+(x.v?'bad':'')+'" data-act="tg" data-s="'+s.id+'" data-k="v">⛔ '+t('مخالفة جسيمة','Serious violation')+' −50</button></div></div>';}).join('');
+   '<div class="chips" style="margin-top:8px"><button class="chip '+(x.v?'bad':'')+'" data-act="tg" data-s="'+s.id+'" data-k="v">⛔ '+t('مخالفة جسيمة','Serious violation')+' −50</button>'+cxChips(x,s.id,false)+'</div></div>';}).join('');
   var allIn=act.length&&!(cnt.e+cnt.u);if(allIn)sum+=5;
   var summ='<span class="gsum">'+(allIn?'<span class="pill p">👥 <span class="num">+5</span></span>':'')+'<span class="pill p">'+N(cnt.p)+' '+t('في الوقت','on time')+'</span>'+(cnt.l?'<span class="pill l">'+N(cnt.l)+' '+t('متأخر','late')+'</span>':'')+(cnt.e+cnt.u?'<span class="pill u">'+N(cnt.e+cnt.u)+' '+t('غائب','absent')+'</span>':'')+'</span>';
   var allOpen=act.length&&act.every(function(s){return UI.os[s.id];});
@@ -257,6 +277,7 @@ function vTests(){
 function vGroups(){
  var h='<div class="card"><h2>'+t('إعدادات المسابقة','Competition settings')+'</h2><div class="grid2"><div><label class="f">'+t('اسم المسابقة','Competition name')+'</label><input type="text" dir="auto" data-act="title" value="'+esc(S.settings.title)+'" style="width:100%"></div><div><label class="f">'+t('التقويم الشهري','Monthly calendar')+'</label><div class="radio"><button class="'+(S.settings.cal==='hijri'?'on':'')+'" data-act="cal" data-v="hijri">'+t('هجري (أم القرى)','Hijri (Umm al-Qura)')+'</button><button class="'+(S.settings.cal==='greg'?'on':'')+'" data-act="cal" data-v="greg">'+t('ميلادي','Gregorian')+'</button></div></div>'+
  '<div><label class="f">'+t('طريقة الترتيب','Ranking method')+'</label><div class="radio"><button class="'+(S.settings.rank==='total'?'on':'')+'" data-act="rank" data-v="total">'+t('مجموع النقاط','Total points')+'</button><button class="'+(S.settings.rank==='avg'?'on':'')+'" data-act="rank" data-v="avg">'+t('متوسط الطالب','Average per student')+'</button></div><p class="muted small" style="margin:4px 0 0">'+t('«متوسط الطالب» أعدل إذا اختلفت أعداد الطلاب بين المجموعات.','“Average per student” is fairer if groups have different numbers of students.')+'</p></div></div></div>';
+ h+=rulesCard();
  S.groups.forEach(function(g,i){h+='<div class="card grp" style="--gc:'+COLORS[i%COLORS.length]+'"><div class="row"><input type="text" dir="auto" data-act="gname" data-v="'+g.id+'" value="'+esc(g.name)+'" style="font-weight:700;flex:1;min-width:160px"><button class="btn sm danger '+(UI.arm==='g-'+g.id?'arm':'')+'" data-act="delg" data-v="'+g.id+'">'+(UI.arm==='g-'+g.id?t('تأكيد حذف المجموعة؟','Confirm delete group?'):t('حذف المجموعة','Delete group'))+'</button></div>'+
   '<div class="schips">'+(g.students.length?g.students.map(function(s){return '<span class="schip '+(s.arc?'arc':'')+'"><bdi>'+esc(s.name)+'</bdi>'+(s.arc?'<button data-act="unarc" data-v="'+s.id+'" title="'+t('إعادة','Restore')+'">↺</button>':'<button data-act="arc" data-v="'+s.id+'" title="'+t('إزالة من المجموعة','Remove from group')+'">×</button>')+'</span>';}).join(''):'<span class="muted small">'+t('لا يوجد طلاب بعد','No students yet')+'</span>')+'</div>'+
   '<textarea id="add-'+g.id+'" dir="auto" placeholder="'+t('أضف طلابًا — اسم في كل سطر','Add students — one name per line')+'" style="min-height:60px"></textarea><div class="row" style="margin-top:6px"><button class="btn sm" data-act="addstu" data-v="'+g.id+'">'+t('إضافة الطلاب','Add students')+'</button><span class="muted small">'+t('الطالب المُزال يبقى في سجلات الأشهر السابقة.','A removed student stays in past months’ records.')+'</span></div></div>';});
@@ -278,6 +299,7 @@ function vRules(){var rr=function(a,b){return '<div class="r"><span>'+a+'</span>
  '<h3>'+t('٥- المبادرات والأثر الإيجابي','5. Initiatives & positive impact')+'</h3>'+rr('💡 '+t('عمل فيه قيمة مجتمعية أو أثر إيجابي','An act of community value or positive impact'),sgn(1))+nt(t('سواء داخل الحلقة أو خارجها أثناء الدوام، ويقيّمها المعلم','Inside the halaqah or outside it during class hours, judged by the teacher'))+
  '<h3>'+t('٦- الإنجاز الكبير','6. Major achievement')+'</h3>'+rr('🌟 '+t('اختبار التجاوز (نجاح 95% فأعلى)','Graduation test (pass at 95% or above)'),sgn(10))+
  '<h3>'+t('٧- المخالفات الجسيمة','7. Serious violations')+'</h3>'+rr('⛔ '+t('ثبوت حالة غش أو كذب أو ما شابه','A proven case of cheating, lying or similar'),sgn(-50))+nt(t('وأنتم محشومين بإذن الله','And you are above that, in shā’ Allāh'))+
+ ((S.rules||[]).some(function(r){return !r.arc;})?'<h3>'+t('٨- بنود إضافية','8. Custom rules')+'</h3>'+(S.rules||[]).filter(function(r){return !r.arc;}).map(function(r){return rr(esc(r.icon||'')+' '+esc(r.name),sgn(r.pts));}).join(''):'')+
  '<p class="muted small" style="margin-top:14px">'+t('ملاحظات التطبيق: الغائب (بعذر أو بدونه) لا تُحتسب له بقية النقاط. الغياب بعذر صفر نقاط. المتأخر يُخصم عنه نقطة ولا يأخذ نقاط عدم التأخر. تحصل المجموعة على +5 في كل حصة يحضرها جميع طلابها (المتأخر يُعدّ حاضرًا). المخالفة الجسيمة تُحتسب في كل الأحوال.','How the app applies these: an absent student (excused or not) gets no other points. An excused absence is 0. A late student loses 1 point and does not get the on-time points. A group gets +5 for each class where all its students attend (late counts as present). A serious violation counts in every case.')+'</p></div>';}
 
 /* ---------- actions ---------- */
@@ -287,7 +309,7 @@ function setRec(sid,patch){var d=UI.date;S.sessions[d]=S.sessions[d]||{};var cur
 function shownGroups(){return S.groups.filter(function(g){return UI.gf==='all'||g.id===UI.gf;});}
 function persist(msg){saveLocal();saveUI();toast(msg||t('تم الحفظ ✓','Saved ✓'));}
 
-function doMerge(T,d){var c={g:0,s:0,r:0,k:0,t:0},map={};
+function doMerge(T,d){var c={g:0,s:0,r:0,k:0,t:0},map={};T.rules=T.rules||[];(d.rules||[]).forEach(function(r){if(!T.rules.some(function(q){return q.id===r.id;}))T.rules.push(r);});
  (d.groups||[]).forEach(function(fg){var g=T.groups.filter(function(x){return x.id===fg.id;})[0]||T.groups.filter(function(x){return norm(x.name)===norm(fg.name);})[0];
   if(!g){g={id:fg.id,name:fg.name,students:[]};T.groups.push(g);c.g++;}
   (fg.students||[]).forEach(function(fs){var s=g.students.filter(function(x){return x.id===fs.id;})[0]||g.students.filter(function(x){return norm(x.name)===norm(fs.name);})[0];
@@ -357,17 +379,23 @@ app.addEventListener('click',function(ev){
  if(ev.target.closest('[data-stop]')&&el.classList.contains('modal'))return;
  var a=el.dataset.act,v=el.dataset.v,s=el.dataset.s;
  if(el.tagName==='SELECT'||el.tagName==='INPUT')return;
- if(a!=='delsess'&&a!=='delg'&&a!=='rt')UI.arm=null;
+ if(a!=='delsess'&&a!=='delg'&&a!=='rt'&&a!=='delrule')UI.arm=null;
  switch(a){
  case 'theme':THEME={auto:'light',light:'dark',dark:'auto'}[THEME];try{localStorage.setItem('hc-theme',THEME);}catch(e){}applyTheme();toast(t('المظهر: ','Theme: ')+({auto:t('تلقائي (حسب الجهاز)','Auto (follows device)'),light:t('فاتح','Light'),dark:t('داكن','Dark')})[THEME]);return;
  case 'lang':LANG=LANG==='en'?'ar':'en';try{localStorage.setItem('hc-lang',LANG);}catch(e){}break;
  case 'tab':UI.tab=v;if(v!=='log'&&v!=='board')UI.sub=v;saveUI();resetScroll=true;break;
  case 'rep':UI.rep=v;saveUI();break;
  case 'lm':UI.lm=v;saveUI();break;
+ case 'rall':var RA=ruleOf(el.dataset.k);if(!RA)return;var sel=v==='sel';if(sel&&rNeg(RA))return;shownGroups().forEach(function(gA){active(gA).forEach(function(st){var x=(S.sessions[UI.date]||{})[st.id]||DEF;if(sel&&(x.a==='e'||x.a==='u')&&RA[1]!=='att')return;if(rMarked(RA,x)===sel)return;
+   if(RA[1]==='att')setRec(st.id,{a:sel?RA[0]:'p'});else if(RA[1]==='cnt')setRec(st.id,{x:sel?1:0});else if(RA[1]==='cx'){var c3=Object.assign({},x.cx||{});if(sel)c3[RA[0]]=RA[6];else delete c3[RA[0]];setRec(st.id,{cx:c3});}else if(RA[1]==='off'){var o4={};o4[RA[0]]=sel?0:1;setRec(st.id,o4);}else{var o5={};o5[RA[0]]=sel?1:0;setRec(st.id,o5);}});});UI.arm=null;break;
+ case 'crt':var ci0=document.getElementById('cr-icon'),cn0=document.getElementById('cr-name'),cp0=document.getElementById('cr-pts');UI.crf={i:ci0?ci0.value:'',n:cn0?cn0.value:'',p:cp0?cp0.value:''};UI.crt=v;break;
+ case 'addrule':var nm1=(document.getElementById('cr-name').value||'').trim(),pp1=Math.round(+document.getElementById('cr-pts').value),ic1=(document.getElementById('cr-icon').value||'').trim();if(!nm1||!(pp1>0)){toast(t('اكتب اسم البند وعدد النقاط','Enter a rule name and points'));return;}pp1=Math.min(100,pp1);var ng1=UI.crt==='minus';S.rules=S.rules||[];S.rules.push({id:'c'+uid(),name:nm1,icon:ic1||(ng1?'⚠️':'⭐'),pts:ng1?-pp1:pp1});UI.crf=null;touch();toast(t('أُضيف البند ✓','Rule added ✓'));return;
+ case 'delrule':if(UI.arm==='r-'+v){(S.rules||[]).forEach(function(q){if(q.id===v)q.arc=1;});UI.arm=null;touch();}else UI.arm='r-'+v;break;
  case 'rhead':var wasO=UI.ro[v];UI.ro={};if(!wasO)UI.ro[v]=1;saveUI();break;
  case 'rt':var rk=el.dataset.k,RD=ruleOf(rk),cr=(S.sessions[UI.date]||{})[s]||DEF;if(!RD)return;
   if(RD[1]==='att'){setRec(s,{a:cr.a===rk?'p':rk});}
   else if(RD[1]==='cnt'){setRec(s,{x:(+cr.x||0)?0:1});}
+  else if(RD[1]==='cx'){var cc=Object.assign({},cr.cx||{});if(cc[rk]!==undefined)delete cc[rk];else cc[rk]=RD[6];setRec(s,{cx:cc});}
   else if(rk==='v'){if(cr.v){setRec(s,{v:0});UI.arm=null;}else if(UI.arm==='v-'+s){setRec(s,{v:1});UI.arm=null;}else{UI.arm='v-'+s;}}
   else{var o2={};o2[rk]=cr[rk]?0:1;setRec(s,o2);}
   if(rk!=='v')UI.arm=null;break;
@@ -379,7 +407,7 @@ app.addEventListener('click',function(ev){
  case 'backup':doBackup();return;
  case 'shareimg':shareImage();return;
  case 'sharetxt':shareText(waText());return;
- case 'restoreok':if(UI.pending){S=UI.pending;S.groups=S.groups||[];S.sessions=S.sessions||{};S.tests=S.tests||[];S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||{});UI.pending=null;UI.month=null;persist(t('تمت الاستعادة ✓','Restored ✓'));}break;
+ case 'restoreok':if(UI.pending){S=UI.pending;S.groups=S.groups||[];S.rules=S.rules||[];S.sessions=S.sessions||{};S.tests=S.tests||[];S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||{});UI.pending=null;UI.month=null;persist(t('تمت الاستعادة ✓','Restored ✓'));}break;
  case 'restorecancel':UI.pending=null;break;
  case 'importok':if(UI.pendImp){S=UI.pendImp.T;var ic=UI.pendImp.c;UI.pendImp=null;UI.month=null;persist(t('تمت الإضافة ✓ ','Added ✓ ')+ic.r+' '+t('سجل','records'));}break;
  case 'importcancel':UI.pendImp=null;break;

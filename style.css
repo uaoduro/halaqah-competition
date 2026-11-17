@@ -153,3 +153,20 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:2px 0 6px}
 .nchip.exc{background:var(--grey2);border-color:var(--muted);font-weight:700}
 .nchip.dim{opacity:.35;pointer-events:none}
 .nchip.arm{background:var(--red);color:#fff;border-color:transparent}
+.rsum{padding:4px 14px}
+.rsum .prow:first-child{border-top:0}
+.rsec{font-size:13px;color:var(--muted);font-weight:600;margin:18px 6px 6px}
+.rlist{padding:0;overflow:hidden}
+.rrow{border-top:.5px solid var(--line)}
+.rrow:first-child{border-top:0}
+.rrow .rhead{display:flex;align-items:center;gap:10px;padding:12px 14px;min-height:54px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.rrow.open .rhead{background:var(--card2)}
+.ric{font-size:22px;width:28px;text-align:center;flex:none}
+.rname{font-weight:600;font-size:16px}
+.rpts{font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--card2);color:var(--muted)}
+.rpts.pos{background:var(--green2);color:var(--green)}
+.rpts.neg{background:var(--red2);color:var(--red)}
+.rbody{padding:10px 14px 16px}
+.rbulk{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.rbulk:empty{display:none}
+.ck{font-weight:800;margin-inline-end:5px}
