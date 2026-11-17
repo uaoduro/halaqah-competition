@@ -51,7 +51,9 @@ function syncCard(){var h='<div class="card"><h2>☁️ '+t('المزامنة ا
  var st=syBusy?'⏳ '+t('جارٍ المزامنة…','Syncing…'):SY.err==='offline'?'📴 '+t('بدون إنترنت — ستتم المزامنة عند الاتصال','Offline — will sync when connected'):SY.err?'⚠️ '+t('تعذّرت المزامنة، ستُعاد المحاولة','Couldn’t sync, will retry')+' <span class="muted small">('+esc(SY.err)+')</span>':SY.dirty?'⏳ '+t('بانتظار المزامنة','Waiting to sync'):SY.at?'✓ '+t('تمت المزامنة ','Synced ')+ago(SY.at):'';
  h+='<p style="margin:0 0 10px">'+st+'</p>'+
  (UI.syc?'<p class="muted small" style="margin:0 0 4px">'+t('رمز المزامنة — أدخله على الجهاز الآخر. أي شخص لديه الرمز يستطيع رؤية البيانات وتعديلها، فاحتفظ به لنفسك.','Sync code — enter it on the other device. Anyone with this code can see and change the data, so keep it to yourself.')+'</p><div class="row" style="flex-wrap:nowrap;align-items:center"><span class="code sp">'+fmtCode(SY.code)+'</span><button class="btn sm" data-act="sy-copy">'+t('نسخ','Copy')+'</button></div>':'<button class="btn sm" data-act="sy-show">🔑 '+t('إظهار رمز المزامنة','Show sync code')+'</button>')+
- '<div class="row" style="margin-top:12px"><button class="btn sp" data-act="sy-now">↻ '+t('مزامنة الآن','Sync now')+'</button><button class="btn danger '+(UI.arm==='sy-off'?'arm':'')+'" data-act="sy-off">'+(UI.arm==='sy-off'?t('تأكيد الإيقاف؟','Confirm turn off?'):t('إيقاف على هذا الجهاز','Turn off here'))+'</button></div>';
+ '<div class="row" style="margin-top:12px"><button class="btn sp" data-act="sy-now">↻ '+t('مزامنة الآن','Sync now')+'</button><button class="btn danger" data-act="sy-off">'+t('إيقاف على هذا الجهاز','Turn off here')+'</button></div>'+
+ (UI.syoff?'<div class="modal" data-act="sy-offc"><div class="card sheet" data-stop="1"><h2 style="margin:0 0 6px">'+t('إيقاف المزامنة على هذا الجهاز','Turn off sync on this device')+'</h2><p class="muted small" style="margin:0">'+t('النسخة السحابية والأجهزة الأخرى لن تتأثر. احتفظ بالرمز إذا أردت الرجوع:','The cloud copy and other devices aren’t affected. Keep the code if you may want to come back:')+'</p><div class="code" style="margin:10px 0">'+fmtCode(SY.code)+'</div>'+
+ '<div class="row" style="margin-top:8px;flex-direction:column;align-items:stretch"><button class="btn" data-act="sy-offk">'+t('إيقاف مع إبقاء البيانات هنا','Turn off, keep the data here')+'</button><button class="btn danger" data-act="sy-offr">'+t('إيقاف وحذف البيانات من هذا الجهاز','Turn off and remove the data from this device')+'</button><button class="btn" data-act="sy-offc">'+t('إلغاء','Cancel')+'</button></div></div></div>':'');
  return h+'</div>';}
 
 var PDEF={on:5,late:-1,abs:-2,b:3,ap:3,fr:1,ini:1,r:5,x:1,f:1,v:-50,grp:5,test:10},PNEG={late:1,abs:1,v:1},_pvr=null,_pvc={};
@@ -485,7 +487,10 @@ app.addEventListener('click',function(ev){
  case 'sy-show':UI.syc=!UI.syc;break;
  case 'sy-copy':try{navigator.clipboard.writeText(fmtCode(SY.code)).then(function(){toast(t('نُسخ الرمز ✓','Code copied ✓'));});}catch(e){}return;
  case 'sy-now':if(SY){SY.err=null;syncNow();}return;
- case 'sy-off':if(UI.arm==='sy-off'){SY=null;saveSY();UI.arm=null;UI.syc=false;toast(t('أُوقفت المزامنة على هذا الجهاز','Sync turned off on this device'));}else UI.arm='sy-off';break;
+ case 'sy-off':UI.syoff=true;break;
+ case 'sy-offc':UI.syoff=false;break;
+ case 'sy-offk':SY=null;saveSY();UI.syoff=false;UI.syc=false;toast(t('أُوقفت المزامنة، والبيانات باقية على هذا الجهاز','Sync is off; the data stays on this device'));break;
+ case 'sy-offr':clearTimeout(syT);SY=null;saveSY();UI.syoff=false;UI.syc=false;UI.og={};UI.os={};UI.gs={};UI.gf='all';UI.month=null;applyS({},true);toast(t('أُوقفت المزامنة وحُذفت البيانات من هذا الجهاز','Sync is off and this device is now empty'));break;
  case 'sy-cancel':UI.syj=null;break;
  case 'sy-join':var jc=cleanCode((document.getElementById('sy-in')||{}).value);if(jc.length!==20){toast(t('الرمز يتكون من 20 حرفًا ورقمًا','The code has 20 letters and digits'));return;}if(!navigator.onLine){toast(t('يحتاج الربط إلى إنترنت','Connecting needs the internet'));return;}
   rpc('hc_pull',{p_code:jc}).then(function(r){if(!r.found){toast(t('لا توجد بيانات لهذا الرمز','No data found for this code'));return;}
