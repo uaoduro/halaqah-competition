@@ -242,9 +242,7 @@ function ruleSections(){var A=rulesAll(),pick=function(f){return A.filter(f);};
   [t('خصومات','Deductions'),pick(rNeg)]];}
 function cxChips(x,sid,pos){return (S.rules||[]).filter(function(r){return !r.arc&&(pos?r.pts>0:r.pts<0);}).map(function(r){var m=!!(x.cx&&x.cx[r.id]!==undefined);return '<button class="chip '+(m?(pos?'on':'bad'):'')+'" data-act="rt" data-k="'+r.id+'" data-s="'+sid+'">'+esc(r.icon||(pos?'⭐':'⚠️'))+' <bdi>'+esc(r.name)+'</bdi> <span class="num">'+(pos?'+':'−')+Math.abs(r.pts)+'</span></button>';}).join('');}
 function ruleView(gs,recs){
- var h='<div class="card rsum">'+gs.map(function(g){var ci=S.groups.indexOf(g),act=active(g);if(!act.length)return '';var pts=0,nl=0,na=0;
-  act.forEach(function(s){var x=recs[s.id]||DEF;pts+=recPts(x,UI.date).t;if(x.a==='l')nl++;if(x.a==='e'||x.a==='u')na++;});if(!na)pts+=PV(UI.date).grp;
-  return '<div class="prow" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi class="sp">'+esc(g.name)+'</bdi>'+(nl?'<span class="pill l">'+N(nl)+' '+t('متأخر','late')+'</span>':'')+(na?'<span class="pill u">'+N(na)+' '+t('غائب','absent')+'</span>':'<span class="pill p">👥 <span class="num">+'+PV(UI.date).grp+'</span></span>')+'<b>'+sgn(pts)+'</b></div>';}).join('')+'</div>';
+ var h='';
  ruleSections().forEach(function(sec){if(!sec[1].length)return;
   h+='<div class="rsec">'+sec[0]+'</div><div class="card rlist">'+sec[1].map(function(R){return ruleRow(R,gs,recs);}).join('')+'</div>';});
  return h;}
