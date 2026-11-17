@@ -171,7 +171,7 @@ function waText(){var M=reportModel();
  if(M.rows.some(function(r){return r.bonus;}))s+='\n👥 '+t('حضور جميع طلاب المجموعة (+5 لكل حصة)','Every student in the group present (+5 per class)')+'\n';
  if(M.top.length){s+='\n⭐ _'+(M.week?t('أبرز طلاب الأسبوع:','Top students this week:'):t('أبرز الطلاب:','Top students:'))+'_\n';M.top.forEach(function(o){s+='• '+o.n+' ('+o.g+'): '+o.v+'\n';});}
  return s+'\n'+t('بارك الله في الجميع 🌹','May Allah bless everyone 🌹');}
-function norm(s){return String(s||'').replace(/[ً-ْٰـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').toLowerCase().trim();}
+function norm(s){return String(s||'').replace(/[\u064B-\u0652\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').toLowerCase().trim();}
 function searchHits(q){q=norm(q);if(!q)return [];var a=[];S.groups.forEach(function(g){active(g).forEach(function(s){var n=norm(s.name);var i=n.indexOf(q);if(i>=0)a.push({s:s,g:g,i:i});});});
  a.sort(function(x,y){return x.i-y.i||x.s.name.localeCompare(y.s.name,'ar');});return a.slice(0,8);}
 function searchHTML(q){if(!norm(q))return '';var hits=searchHits(q);
