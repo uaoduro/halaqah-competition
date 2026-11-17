@@ -308,7 +308,7 @@ function vLog(){
   var allOpen=act.length&&act.every(function(s){return UI.os[s.id];});
   h+='<div class="card grp" style="--gc:'+COLORS[ci%COLORS.length]+'"><div class="row ghead" data-act="gtog" data-v="'+g.id+'"><span class="chev">'+(gOpen?'▾':(LANG==='en'?'▸':'◂'))+'</span><h3><bdi>'+esc(g.name)+'</bdi></h3><span class="muted small">'+sgn(sum)+'</span>'+summ+'<span class="sp"></span>'+(gOpen&&act.length?'<button class="btn sm" data-act="sall" data-v="'+g.id+'">'+(allOpen?t('طي الطلاب','Collapse students'):t('فتح الطلاب','Expand students'))+'</button><button class="btn sm" data-act="allp" data-v="'+g.id+'">'+t('الكل حاضر في الوقت','All on time')+'</button>':'')+'</div>'+
   (!gOpen?'':act.length?'<div class="stus">'+cards+'</div>':'<p class="muted">'+t('لا يوجد طلاب في هذه المجموعة.','No students in this group.')+'</p>')+'</div>';});
- h+='<div class="row" style="margin-bottom:14px"><button class="btn pri" data-act="savesess">💾 '+t('حفظ الحصة','Save class')+'</button>'+(gs.some(function(g){return g.students.some(function(s){return recs[s.id];});})?'<button class="btn danger '+(UI.arm==='del-'+d?'arm':'')+'" data-act="delsess">'+(UI.arm==='del-'+d?t('اضغط مرة أخرى للتأكيد','Tap again to confirm'):'↺ '+(UI.gf==='all'?t('إعادة ضبط الحصة','Reset this class'):t('إعادة ضبط المجموعة','Reset this group')))+'</button>':'')+'</div>';
+ var svd=gs.some(function(g){return active(g).length;})&&gs.every(function(g){return active(g).every(function(s){return !!recs[s.id];});})&&UI.cdirty!==d;h+='<div class="row" style="margin-bottom:14px">'+(svd?'<button class="btn saved" disabled>✓ '+t('تم الحفظ','Saved')+'</button>':'<button class="btn pri" data-act="savesess">💾 '+t('حفظ الحصة','Save class')+'</button>')+(gs.some(function(g){return g.students.some(function(s){return recs[s.id];});})?'<button class="btn danger '+(UI.arm==='del-'+d?'arm':'')+'" data-act="delsess">'+(UI.arm==='del-'+d?t('اضغط مرة أخرى للتأكيد','Tap again to confirm'):'↺ '+(UI.gf==='all'?t('إعادة ضبط الحصة','Reset this class'):t('إعادة ضبط المجموعة','Reset this group')))+'</button>':'')+'</div>';
  h+='<p class="muted small">'+t('لعرض الحصص السابقة أو تعديلها افتح تبويب «الحصص السابقة».','To view or edit earlier classes, open the “Past classes” tab.')+'</p>';
  return h;}
 
@@ -386,7 +386,7 @@ function vRules(){var ed=!!UI.re,rr=function(a,k){var v=k==='e'?0:PV()[k];return
  return h+(UI.mr?ruleSheet():'')+(UI.pe?peSheet():'');}
 
 /* ---------- actions ---------- */
-function touch(){saveLocal();}
+function touch(){if(UI&&UI.tab==='log')UI.cdirty=UI.date;saveLocal();}
 function saveLocal(){try{localStorage.setItem('hc-data',JSON.stringify(S));}catch(e){toast(t('تعذّر الحفظ على الجهاز','Couldn’t save on this device'));}if(SY&&!syApplying){SY.dirty=(SY.dirty||0)+1;saveSY();schedSync();}}
 function setRec(sid,patch){var d=UI.date;S.sessions[d]=S.sessions[d]||{};var cur=S.sessions[d][sid]||Object.assign({},DEF);S.sessions[d][sid]=Object.assign(cur,patch);touch();}
 function shownGroups(){return S.groups.filter(function(g){return UI.gf==='all'||g.id===UI.gf;});}
@@ -537,7 +537,7 @@ app.addEventListener('click',function(ev){
  case 'gall':var go=shownGroups().every(function(g){return UI.og[g.id];});shownGroups().forEach(function(g){if(go)delete UI.og[g.id];else UI.og[g.id]=1;});saveUI();break;
  case 'sall':var sg=S.groups.filter(function(x){return x.id===v;})[0];var so=active(sg).every(function(st){return UI.os[st.id];});active(sg).forEach(function(st){if(so)delete UI.os[st.id];else UI.os[st.id]=1;});saveUI();break;
  case 'allp':var g=S.groups.filter(function(x){return x.id===v;})[0];if(g)active(g).forEach(function(st){setRec(st.id,{a:'p'});});break;
- case 'savesess':var d=UI.date;S.sessions[d]=S.sessions[d]||{};shownGroups().forEach(function(g){active(g).forEach(function(st){if(!S.sessions[d][st.id])S.sessions[d][st.id]=Object.assign({},DEF);});});persist(t('تم حفظ الحصة ✓','Class saved ✓'));render();return;
+ case 'savesess':var d=UI.date;S.sessions[d]=S.sessions[d]||{};shownGroups().forEach(function(g){active(g).forEach(function(st){if(!S.sessions[d][st.id])S.sessions[d][st.id]=Object.assign({},DEF);});});UI.cdirty=null;persist(t('تم حفظ الحصة ✓','Class saved ✓'));render();return;
  case 'delsess':if(UI.arm==='del-'+UI.date){var dd=UI.date;shownGroups().forEach(function(g){g.students.forEach(function(st){if(S.sessions[dd])delete S.sessions[dd][st.id];});});if(S.sessions[dd]&&!Object.keys(S.sessions[dd]).length)delete S.sessions[dd];UI.arm=null;touch();toast(t('تمت إعادة الضبط — عادت العلامات الافتراضية','Reset — back to the default marks'));return;}else UI.arm='del-'+UI.date;break;
  case 'addtest':var sid=document.getElementById('t-s').value,td=document.getElementById('t-d').value,sc=document.getElementById('t-p').value;
   if(!sid||!td||sc===''){toast(t('اختر الطالب واكتب الدرجة','Choose a student and enter the score'));return;}sc=Math.max(0,Math.min(100,+sc));S.tests.push({id:uid(),sid:sid,date:td,score:sc});UI.month=monthKey(td);touch();break;

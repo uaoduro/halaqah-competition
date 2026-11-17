@@ -187,3 +187,4 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .ghead{display:flex;align-items:center;gap:10px;cursor:pointer;min-height:34px}
 .grp.open .ghead{margin-bottom:12px}
 .gdot{width:11px;height:11px;border-radius:50%;background:var(--gc);flex:none}
+.btn.saved{background:var(--card2);color:var(--muted);box-shadow:none;cursor:default;font-weight:600}
