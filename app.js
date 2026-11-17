@@ -9,7 +9,7 @@ S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||
 var FONT='<meta name="theme-color" content="#f2f2f7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">';
 var ART=null,capReady=false,ro=false,dirty=false,publishing=false,saving=false;
 var COLORS=['#0f766e','#b45309','#7c3aed','#be123c','#1d4ed8','#4d7c0f','#0e7490','#a21caf'];
-var DEF={a:'p',b:1,ap:1,pc:1,r:1,x:0,f:0};
+var DEF={a:'p',b:1,ap:1,r:1,x:0,f:0,fr:0,ini:0,v:0};
 var app=document.getElementById('app');
 var UI={tab:'log',sub:'past',month:null,date:null,gf:'all',open:{},og:{},os:{},arm:null,modal:null};
 try{var sv=JSON.parse(sessionStorage.getItem('hc-ui')||'null');if(sv)Object.assign(UI,sv,{arm:null,modal:null});}catch(e){}
@@ -49,9 +49,11 @@ function monthKey(s){if(useH()){var p=HN.formatToParts(toD(s));var y,m;p.forEach
 function monthLabel(s){return fmt(useH()?'HL':'GL').format(toD(s));}
 function dateLong(s){var d=toD(s);return hijriOK?fmt('HD').format(d)+' · '+fmt('GD').format(d):fmt('GF').format(d);}
 function weekKey(s){var d=toD(s);d.setDate(d.getDate()-d.getDay());return ymd(d);}
-function testPts(sc){sc=+sc;return sc>=100?20:sc>=95?10:0;}
+function testPts(sc){sc=+sc;return sc>=95?10:0;}
+function gBonus(g,d){var recs=S.sessions[d]||{},any=false,all=true;g.students.forEach(function(s){var x=recs[s.id];if(!x)return;any=true;if(x.a!=='p'&&x.a!=='l')all=false;});return any&&all?5:0;}
 function recPts(r){var o={att:0,ba:0,rec:0,t:0};if(!r)return o;
- if(r.a==='u'){o.att=-2;}else if(r.a==='e'){}else{o.att=1+(r.a==='l'?-1:1);o.ba=(r.b?3:0)+(r.ap?1:-1)+(r.pc===undefined?0:(r.pc?1:-1));o.rec=(r.r?5:0)+(+r.x||0)+(r.f?1:0);}
+ if(r.a==='u'){o.att=-2;}else if(r.a==='e'){}else{o.att=r.a==='l'?-1:5;o.ba=(r.b?3:0)+(r.ap?3:0)+(r.fr?1:0)+(r.ini?1:0);o.rec=(r.r?5:0)+(+r.x||0)+(r.f?1:0);}
+ if(r.v)o.ba-=50;
  o.t=o.att+o.ba+o.rec;return o;}
 function findStu(id){var f=null;S.groups.forEach(function(g){g.students.forEach(function(s){if(s.id===id)f={s:s,g:g};});});return f;}
 function active(g){return g.students.filter(function(s){return !s.arc;});}
@@ -68,11 +70,7 @@ function compute(mk){
  S.tests.forEach(function(x){if(monthKey(x.date)!==mk)return;var o=byS[x.sid];if(o){o.ach+=testPts(x.score);o.tests.push(x);}});
  var td=today();
  G.forEach(function(r){
-  var act=active(r.g);var wk={};
-  Object.keys(S.sessions).sort().forEach(function(d){var recs=S.sessions[d];if(r.g.students.some(function(s){return recs[s.id];})){var k=weekKey(d);(wk[k]=wk[k]||[]).push(d);}});
-  Object.keys(wk).sort().forEach(function(k){var ds=wk[k];var last=ds[ds.length-1];if(monthKey(last)!==mk||!act.length)return;
-   var ok=ds.every(function(d){return r.g.students.every(function(s){var x=S.sessions[d][s.id];return !x||x.a==='p';});});
-   r.weeks.push({k:k,ok:ok,live:addDays(k,4)>=td});if(ok)r.week+=10;});
+   r.days=0;r.full=0;Object.keys(S.sessions).forEach(function(d){if(monthKey(d)!==mk)return;if(!r.g.students.some(function(s){return S.sessions[d][s.id];}))return;r.days++;var gb=gBonus(r.g,d);if(gb){r.full++;r.week+=gb;}});
   r.stu.forEach(function(o){o.total=o.att+o.ba+o.rec+o.ach;r.att+=o.att;r.ba+=o.ba;r.rec+=o.rec;r.ach+=o.ach;});
   r.total=r.att+r.ba+r.rec+r.ach+r.week;r.n=r.stu.filter(function(o){return o.days||o.ach;}).length||active(r.g).length||1;r.avg=Math.round(r.total/r.n*10)/10;
   r.stu.sort(function(a,b){return b.total-a.total;});});
@@ -106,7 +104,7 @@ function render(){
 var toastMsg=null,toastT,resetScroll=false;
 function toast(m){toastMsg=m;render();clearTimeout(toastT);toastT=setTimeout(function(){toastMsg=null;render();},2600);}
 function monthSel(months){return '<select data-act="month">'+months.map(function(m){return '<option value="'+m.k+'" '+(m.k===UI.month?'selected':'')+'>'+esc(m.label)+'</option>';}).join('')+'</select>';}
-function catNames(){return [t('الحضور','Attendance'),t('السلوك والمظهر','Behaviour & appearance'),t('التسميع','Recitation'),t('اختبار التجاوز','Graduation test'),'🌹 '+t('الأسبوع الكامل','Perfect week')];}
+function catNames(){return [t('الحضور','Attendance'),t('السلوك والمظهر والمبادرات','Conduct & extras'),t('التسميع','Recitation'),t('اختبار التجاوز','Graduation test'),'👥 '+t('حضور الجميع','Everyone present')];}
 
 function vBoard(){
  if(!S.groups.length)return '<div class="card empty"><h2>'+t('أهلًا بك 👋','Welcome 👋')+'</h2><p class="muted">'+t('ابدأ بإضافة مجموعات الحلقة وأسماء الطلاب، ثم سجّل كل حصة لتظهر النتائج هنا تلقائيًا.','Start by adding your class groups and student names, then record each class and the results will appear here automatically.')+'</p>'+(ro?'':'<button class="btn pri" data-act="tab" data-v="groups">'+t('إضافة المجموعات','Add groups')+'</button>')+'</div>';
@@ -124,7 +122,7 @@ function vBoard(){
   h+='<div class="card grp" style="--gc:'+r.color+'"><div class="grp-h" data-act="toggle" data-v="'+r.g.id+'"><div class="rank '+(rk===1?'r1':'')+'">'+medal+'</div><div class="sp"><div class="gname"><bdi>'+esc(r.g.name)+'</bdi></div><div class="muted small">'+N(active(r.g).length)+' '+t('طالب','students')+(avg?'':' · '+t('متوسط الطالب','avg per student')+' '+N(r.avg))+'</div></div><div style="text-align:center"><div class="total"><span class="num">'+v+'</span></div><small class="muted small">'+(avg?t('متوسط','average'):t('نقطة','points'))+'</small></div><span class="muted">'+(open?'▴':'▾')+'</span></div>';
   h+='<div class="bar"><i style="width:'+Math.max(0,v/max*100)+'%"></i></div>';
   if(open){
-   if(r.weeks.length)h+='<div class="weeks">'+r.weeks.map(function(w){return '<span class="wk '+(w.ok?'ok':'')+'">'+t('أسبوع','Week of')+' '+esc(fmt('GD').format(toD(w.k)))+(w.ok?' ✓ +10':' ✗')+(w.live?' ('+t('جارٍ','in progress')+')':'')+'</span>';}).join('')+'</div>';
+   if(r.days)h+='<div class="weeks"><span class="wk '+(r.full?'ok':'')+'">👥 '+t('حضور جميع الطلاب','Everyone present')+': '+N(r.full)+' / '+N(r.days)+' '+t('حصص','classes')+(r.full?' · <span class="num">+'+(r.full*5)+'</span>':'')+'</span></div>';
    h+='<div class="tblwrap"><table><thead><tr><th>'+t('الطالب','Student')+'</th><th class="n">'+t('الحصص','Classes')+'</th><th class="n">'+cn[0]+'</th><th class="n">'+cn[1]+'</th><th class="n">'+cn[2]+'</th><th class="n">'+cn[3]+'</th><th class="n">'+t('المجموع','Total')+'</th></tr></thead><tbody>'+
    r.stu.filter(function(o){return !o.s.arc||o.days;}).map(function(o){return '<tr><td><bdi>'+esc(o.s.name)+'</bdi>'+(o.s.arc?' <span class="muted small">('+t('مؤرشف','archived')+')</span>':'')+'</td><td class="n">'+N(o.days)+'</td><td class="n">'+sgn(o.att)+'</td><td class="n">'+sgn(o.ba)+'</td><td class="n">'+sgn(o.rec)+'</td><td class="n">'+sgn(o.ach)+'</td><td class="n"><b>'+sgn(o.total)+'</b></td></tr>';}).join('')+'</tbody></table></div>';}
   h+='</div>';});
@@ -139,9 +137,8 @@ function computeWeek(wk){
   g.students.forEach(function(s){var o={s:s,g:g,total:0,days:0,ach:0};byS[s.id]=o;r.stu.push(o);});return r;});
  ds.forEach(function(d){var recs=S.sessions[d];Object.keys(recs).forEach(function(sid){var o=byS[sid];if(o){o.total+=recPts(recs[sid]).t;o.days++;}});});
  S.tests.forEach(function(x){if(weekKey(x.date)!==wk)return;var o=byS[x.sid];if(o){var p=testPts(x.score);o.total+=p;o.ach+=p;}});
- G.forEach(function(r){var gd=ds.filter(function(d){return r.g.students.some(function(s){return S.sessions[d][s.id];});});
-  r.perfect=gd.length>0&&gd.every(function(d){return r.g.students.every(function(s){var x=S.sessions[d][s.id];return !x||x.a==='p';});});
-  if(r.perfect)r.week=10;r.total=r.week;r.stu.forEach(function(o){r.total+=o.total;});
+ G.forEach(function(r){r.full=0;ds.forEach(function(d){var gb=gBonus(r.g,d);if(gb){r.full++;r.week+=gb;}});
+  r.total=r.week;r.stu.forEach(function(o){r.total+=o.total;});
   r.n=r.stu.filter(function(o){return o.days||o.ach;}).length||active(r.g).length||1;r.avg=Math.round(r.total/r.n*10)/10;});
  var f=ds[0]||wk,l=ds[ds.length-1]||addDays(wk,4);var F=fmt(useH()?'HS':'GD');
  return {groups:G,byS:byS,label:F.format(toD(f))+(l!==f?' – '+F.format(toD(l)):''),classes:ds.length};}
@@ -149,20 +146,20 @@ function reportModel(){var avg=S.settings.rank==='avg',M,sub,isW=UI.rep==='week'
  if(isW){M=computeWeek(lastWeek());sub=t('نتائج الأسبوع: ','This week: ')+M.label;}
  else{var months=monthList();var m=months.filter(function(x){return x.k===UI.month;})[0]||months[0];M=compute(m.k);sub=t('نتائج ','Results · ')+m.label;}
  var key=function(r){return avg?r.avg:r.total;};
- var rows=M.groups.slice().sort(function(a,b){return key(b)-key(a);}).map(function(r){return {name:r.g.name,color:r.color,v:key(r),star:isW&&r.perfect};});
+ var rows=M.groups.slice().sort(function(a,b){return key(b)-key(a);}).map(function(r){return {name:r.g.name,color:r.color,v:key(r),bonus:isW?r.week:0};});
  var top=Object.keys(M.byS).map(function(k){return M.byS[k];}).filter(function(o){return o.days||o.ach;}).sort(function(a,b){return b.total-a.total;}).slice(0,3).map(function(o){return {n:o.s.name,g:o.g.name,v:o.total};});
  return {sub:sub,rows:rows,top:top,avg:avg,week:isW,classes:M.classes};}
 function repToggle(){return '<div class="radio" style="margin-bottom:12px"><button data-act="rep" data-v="month" class="'+(UI.rep!=='week'?'on':'')+'">'+t('الشهر','Month')+'</button><button data-act="rep" data-v="week" class="'+(UI.rep==='week'?'on':'')+'">'+t('هذا الأسبوع','This week')+'</button></div>';}
 function vWeek(){var M=reportModel();var medal=function(i){return i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);};
  var h='<div class="card"><h3 style="margin-bottom:4px">'+esc(M.sub)+'</h3><p class="muted small" style="margin:0 0 6px">'+N(M.classes)+' '+t('حصص','classes')+(M.avg?' · '+t('متوسط الطالب','avg per student'):'')+'</p>'+
- M.rows.map(function(r,i){return '<div class="prow" style="--gc:'+r.color+'"><b style="width:28px;text-align:center">'+medal(i)+'</b><span class="dot"></span><bdi class="sp">'+esc(r.name)+'</bdi>'+(r.star?'<span class="pill p">🌹 <span class="num">+10</span></span>':'')+'<b>'+sgn(r.v)+'</b></div>';}).join('')+
- (M.rows.some(function(r){return r.star;})?'<p class="muted small" style="margin:8px 0 0">🌹 '+t('حضور كامل بدون تأخر طوال الأسبوع','Perfect attendance all week')+' <span class="num">(+10)</span></p>':'')+'</div>';
+ M.rows.map(function(r,i){return '<div class="prow" style="--gc:'+r.color+'"><b style="width:28px;text-align:center">'+medal(i)+'</b><span class="dot"></span><bdi class="sp">'+esc(r.name)+'</bdi>'+(r.bonus?'<span class="pill p">👥 <span class="num">+'+r.bonus+'</span></span>':'')+'<b>'+sgn(r.v)+'</b></div>';}).join('')+
+ (M.rows.some(function(r){return r.bonus;})?'<p class="muted small" style="margin:8px 0 0">👥 '+t('حضور جميع طلاب المجموعة','Every student in the group present')+' <span class="num">(+5)</span> '+t('لكل حصة','per class')+'</p>':'')+'</div>';
  if(M.top.length)h+='<div class="card"><h2>⭐ '+t('أبرز طلاب الأسبوع','Top students this week')+'</h2><div class="toplist">'+M.top.map(function(o,i){return '<div><b class="num" style="width:24px">'+(i+1)+'</b><span class="sp"><bdi>'+esc(o.n)+'</bdi> <span class="muted small">· <bdi>'+esc(o.g)+'</bdi></span></span><b>'+sgn(o.v)+'</b></div>';}).join('')+'</div></div>';
  return h;}
 function waText(){var M=reportModel();
  var s='🏆 *'+title()+'*\n_'+M.sub+'_\n\n';
- M.rows.forEach(function(r,i){s+=(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' *'+r.name+'*: '+(M.avg?r.v+' ('+t('متوسط','average')+')':r.v+' '+t('نقطة','points'))+(r.star?' 🌹':'')+'\n';});
- if(M.rows.some(function(r){return r.star;}))s+='\n🌹 '+t('حضور كامل بدون تأخر طوال الأسبوع (+10)','Perfect attendance all week (+10)')+'\n';
+ M.rows.forEach(function(r,i){s+=(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.')+' *'+r.name+'*: '+(M.avg?r.v+' ('+t('متوسط','average')+')':r.v+' '+t('نقطة','points'))+(r.bonus?' 👥':'')+'\n';});
+ if(M.rows.some(function(r){return r.bonus;}))s+='\n👥 '+t('حضور جميع طلاب المجموعة (+5 لكل حصة)','Every student in the group present (+5 per class)')+'\n';
  if(M.top.length){s+='\n⭐ _'+(M.week?t('أبرز طلاب الأسبوع:','Top students this week:'):t('أبرز الطلاب:','Top students:'))+'_\n';M.top.forEach(function(o){s+='• '+o.n+' ('+o.g+'): '+o.v+'\n';});}
  return s+'\n'+t('بارك الله في الجميع 🌹','May Allah bless everyone 🌹');}
 function vLog(){
@@ -177,18 +174,21 @@ function vLog(){
   var ATTN={p:t('في الوقت','On time'),l:t('متأخر','Late'),e:t('غائب بعذر','Excused'),u:t('غائب بدون عذر','Unexcused')};
  gs.forEach(function(g){var ci=S.groups.indexOf(g);var act=active(g);var sum=0;var cnt={p:0,l:0,e:0,u:0};var gOpen=!!UI.og[g.id];
   var cards=act.map(function(s){var r=recs[s.id];var x=r||DEF;var p=recPts(x);sum+=p.t;cnt[x.a]++;var ab=x.a==='e'||x.a==='u';var so=!!UI.os[s.id];
-   var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 −1</span>';if(x.pc===0)flags+='<span class="flag bad">✏️ −1</span>';if(!x.r)flags+='<span class="flag bad">📖 ✗</span>';if(x.f)flags+='<span class="flag">🤝 +1</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';}
+   var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 ✗</span>';if(x.fr)flags+='<span class="flag">🕌 +1</span>';if(x.ini)flags+='<span class="flag">💡 +1</span>';if(!x.r)flags+='<span class="flag bad">📖 ✗</span>';if(x.f)flags+='<span class="flag">🤝 +1</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';}if(x.v)flags+='<span class="flag bad">⛔ −50</span>';
    var head='<div class="stu-h" data-act="stog" data-v="'+s.id+'"><span class="nm"><bdi>'+esc(s.name)+'</bdi></span>'+(so?'':'<span class="pill '+x.a+'">'+ATTN[x.a]+'</span>'+flags)+'<span class="sp"></span><span class="pts">'+sgn(p.t)+'</span><span class="chev">'+(so?'▴':'▾')+'</span></div>';
    if(!so)return '<div class="stu col '+(r?'':'new ')+'">'+head+'<div class="hint">'+t('اضغط على الاسم لفتح خيارات الطالب','Tap the name to open this student’s options')+'</div></div>';
    return '<div class="stu '+(r?'':'new ')+(ab?'abs':'')+'">'+head+'<div class="hint">'+t('اختر حالة الحضور بضغطة · اضغط على أي خيار مرة لإلغائه ومرة أخرى لإعادته (أخضر = نقاط، أحمر = خصم) · استخدم + و − للدروس الإضافية · اضغط على الاسم لطيّ البطاقة','Tap one attendance status · Tap any option once to turn it off, again to turn it back on (green = points, red = deduction) · Use + and − for extra lessons · Tap the name to fold the card')+'</div>'+
    '<div class="seg">'+ATT.map(function(a){return '<button class="'+a[0]+(x.a===a[0]?' on':'')+'" data-act="set" data-s="'+s.id+'" data-k="a" data-v="'+a[0]+'">'+a[1]+'</button>';}).join('')+'</div>'+
    '<div class="chips"><button class="chip '+(x.b?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="b">😇 '+t('السلوك','Behaviour')+' +3</button>'+
-   '<button class="chip '+(x.ap?'on':'bad')+'" data-act="tg" data-s="'+s.id+'" data-k="ap">👔 '+t('المظهر','Appearance')+' '+(x.ap?'+1':'−1')+'</button>'+
-   '<button class="chip '+(x.pc===0?'bad':'on')+'" data-act="tg" data-s="'+s.id+'" data-k="pc">✏️ '+t('المرسام','Pencil')+' '+(x.pc===0?'−1':'+1')+'</button>'+
+   '<button class="chip '+(x.ap?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="ap">👔 '+t('المظهر','Appearance')+' +3</button>'+
+   '<button class="chip '+(x.fr?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="fr">🕌 '+t('الصف الأول','First row')+' +1</button>'+
    '<button class="chip '+(x.r?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="r">📖 '+t('التسميع','Recitation')+' +5</button>'+
    '<button class="chip '+(x.f?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="f">🤝 '+t('المتابعة','Partner')+' +1</button>'+
-   '<span class="stepper '+(x.x?'on':'')+'"><button data-act="ex" data-s="'+s.id+'" data-v="-1" aria-label="−">−</button><span>➕ '+t('درس إضافي','Extra lesson')+' '+N(x.x||0)+'</span><button data-act="ex" data-s="'+s.id+'" data-v="1" aria-label="+">+</button></span></div></div>';}).join('');
-  var summ='<span class="gsum"><span class="pill p">'+N(cnt.p)+' '+t('في الوقت','on time')+'</span>'+(cnt.l?'<span class="pill l">'+N(cnt.l)+' '+t('متأخر','late')+'</span>':'')+(cnt.e+cnt.u?'<span class="pill u">'+N(cnt.e+cnt.u)+' '+t('غائب','absent')+'</span>':'')+'</span>';
+   '<button class="chip '+(x.ini?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="ini">💡 '+t('مبادرة','Initiative')+' +1</button>'+
+   '<span class="stepper '+(x.x?'on':'')+'"><button data-act="ex" data-s="'+s.id+'" data-v="-1" aria-label="−">−</button><span>➕ '+t('درس إضافي','Extra lesson')+' '+N(x.x||0)+'</span><button data-act="ex" data-s="'+s.id+'" data-v="1" aria-label="+">+</button></span></div>'+
+   '<div class="chips" style="margin-top:8px"><button class="chip '+(x.v?'bad':'')+'" data-act="tg" data-s="'+s.id+'" data-k="v">⛔ '+t('مخالفة جسيمة','Serious violation')+' −50</button></div></div>';}).join('');
+  var allIn=act.length&&!(cnt.e+cnt.u);if(allIn)sum+=5;
+  var summ='<span class="gsum">'+(allIn?'<span class="pill p">👥 <span class="num">+5</span></span>':'')+'<span class="pill p">'+N(cnt.p)+' '+t('في الوقت','on time')+'</span>'+(cnt.l?'<span class="pill l">'+N(cnt.l)+' '+t('متأخر','late')+'</span>':'')+(cnt.e+cnt.u?'<span class="pill u">'+N(cnt.e+cnt.u)+' '+t('غائب','absent')+'</span>':'')+'</span>';
   var allOpen=act.length&&act.every(function(s){return UI.os[s.id];});
   h+='<div class="card grp" style="--gc:'+COLORS[ci%COLORS.length]+'"><div class="row ghead" data-act="gtog" data-v="'+g.id+'"><span class="chev">'+(gOpen?'▾':(LANG==='en'?'▸':'◂'))+'</span><h3><bdi>'+esc(g.name)+'</bdi></h3><span class="muted small">'+sgn(sum)+'</span>'+summ+'<span class="sp"></span>'+(gOpen&&act.length?'<button class="btn sm" data-act="sall" data-v="'+g.id+'">'+(allOpen?t('طي الطلاب','Collapse students'):t('فتح الطلاب','Expand students'))+'</button><button class="btn sm" data-act="allp" data-v="'+g.id+'">'+t('الكل حاضر في الوقت','All on time')+'</button>':'')+'</div>'+
   (!gOpen?'':act.length?'<div class="stus">'+cards+'</div>':'<p class="muted">'+t('لا يوجد طلاب في هذه المجموعة.','No students in this group.')+'</p>')+'</div>';});
@@ -204,7 +204,7 @@ function vPast(){
  var cards=ds.map(function(d){var recs=S.sessions[d];var st=0;
   var rows=S.groups.map(function(g,ci){var c={p:0,l:0,e:0,u:0},pts=0,n=0;
    g.students.forEach(function(s){var r=recs[s.id];if(!r)return;n++;c[r.a]++;pts+=recPts(r).t;});
-   if(!n)return '';st+=pts;tot.n+=n;tot.p+=c.p;tot.l+=c.l;tot.ab+=c.e+c.u;
+   if(n&&!(c.e+c.u))pts+=5;if(!n)return '';st+=pts;tot.n+=n;tot.p+=c.p;tot.l+=c.l;tot.ab+=c.e+c.u;
    return '<div class="prow" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi class="sp">'+esc(g.name)+'</bdi><span class="gsum"><span class="pill p">'+N(c.p)+' '+t('في الوقت','on time')+'</span>'+(c.l?'<span class="pill l">'+N(c.l)+' '+t('متأخر','late')+'</span>':'')+(c.e+c.u?'<span class="pill u">'+N(c.e+c.u)+' '+t('غائب','absent')+'</span>':'')+'</span><b>'+sgn(pts)+'</b></div>';}).join('');
   tot.pts+=st;
   return '<div class="card"><div class="row"><h3>'+esc(dateLong(d))+'</h3><span class="sp"></span><span class="muted small">'+t('المجموع','Total')+' '+sgn(st)+'</span><button class="btn sm" data-act="goto" data-v="'+d+'">✏️ '+t('فتح وتعديل','Open & edit')+'</button></div><div class="prows">'+rows+'</div></div>';}).join('');
@@ -217,7 +217,7 @@ function vPast(){
 function vTests(){
  if(!S.groups.length)return vBoard();
  var months=monthList();if(!months.some(function(m){return m.k===UI.month;}))UI.month=months[0].k;
- var h='<div class="card"><h2>'+t('تسجيل اختبار تجاوز','Record a graduation test')+'</h2><p class="muted small" style="margin-top:-6px">'+t('من 95% إلى 99%: +10 · الدرجة الكاملة 100%: +20 (أقل من 95% يُسجّل بدون نقاط)','95% to 99%: +10 · Full marks 100%: +20 (below 95% is recorded with no points)')+'</p><div class="row"><select id="t-s" style="flex:2;min-width:180px"><option value="">'+t('اختر الطالب…','Choose student…')+'</option>'+S.groups.map(function(g){return '<optgroup label="'+esc(g.name)+'">'+active(g).map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('')+'</optgroup>';}).join('')+'</select><input type="date" id="t-d" value="'+today()+'"><input type="number" id="t-p" min="0" max="100" placeholder="'+t('الدرجة %','Score %')+'" style="width:110px"><button class="btn pri" data-act="addtest">'+t('إضافة','Add')+'</button></div></div>';
+ var h='<div class="card"><h2>'+t('تسجيل اختبار تجاوز','Record a graduation test')+'</h2><p class="muted small" style="margin-top:-6px">'+t('نجاح 95% فأعلى: +10 (أقل من 95% يُسجّل بدون نقاط)','Pass at 95% or above: +10 (below 95% is recorded with no points)')+'</p><div class="row"><select id="t-s" style="flex:2;min-width:180px"><option value="">'+t('اختر الطالب…','Choose student…')+'</option>'+S.groups.map(function(g){return '<optgroup label="'+esc(g.name)+'">'+active(g).map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('')+'</optgroup>';}).join('')+'</select><input type="date" id="t-d" value="'+today()+'"><input type="number" id="t-p" min="0" max="100" placeholder="'+t('الدرجة %','Score %')+'" style="width:110px"><button class="btn pri" data-act="addtest">'+t('إضافة','Add')+'</button></div></div>';
  var list=S.tests.filter(function(x){return monthKey(x.date)===UI.month;}).sort(function(a,b){return a.date<b.date?1:-1;});
  h+='<div class="card"><div class="row" style="margin-bottom:8px"><h2 style="margin:0">'+t('الاختبارات المسجّلة','Recorded tests')+'</h2><span class="sp"></span>'+monthSel(months)+'</div>'+(list.length?'<ul class="list">'+list.map(function(x){var f=findStu(x.sid);return '<li><span class="sp"><b><bdi>'+esc(f?f.s.name:'—')+'</bdi></b> <span class="muted small">· <bdi>'+esc(f?f.g.name:'')+'</bdi> · '+esc(dateLong(x.date))+'</span></span><span class="num">'+x.score+'%</span><b>'+sgn(testPts(x.score))+'</b><button class="btn sm danger" data-act="deltest" data-v="'+x.id+'">'+t('حذف','Delete')+'</button></li>';}).join('')+'</ul>':'<p class="muted">'+t('لا توجد اختبارات في هذا الشهر.','No tests this month.')+'</p>')+'</div>';
  return h;}
@@ -234,13 +234,16 @@ function vGroups(){
  (UI.pending?'<div class="banner" style="margin:12px 0 0">'+t('الملف يحتوي على ','The file has ')+N(UI.pending.groups.length)+' '+t('مجموعات و','groups and ')+N(Object.keys(UI.pending.sessions||{}).length)+' '+t('حصص. سيستبدل البيانات الحالية.',' classes. It will replace the current data.')+'<div class="row" style="margin-top:8px"><button class="btn danger arm" data-act="restoreok">'+t('استبدال البيانات','Replace data')+'</button><button class="btn" data-act="restorecancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+'</div>';
  return h;}
 
-function vRules(){var rr=function(a,b){return '<div class="r"><span>'+a+'</span><b>'+b+'</b></div>';};
+function vRules(){var rr=function(a,b){return '<div class="r"><span>'+a+'</span><b>'+b+'</b></div>';};var nt=function(a){return '<p class="muted small" style="margin:4px 0 0">'+a+'</p>';};
  return '<div class="card rules"><h2>📊 '+t('توزيع نقاط تقييم المجموعات','Group points system')+'</h2>'+
- '<h3>'+t('١- الحضور والانضباط','1. Attendance & punctuality')+'</h3>'+rr('👥 '+t('الحضور الكامل','Attendance'),sgn(1))+rr('🚫 '+t('غياب بدون عذر','Absence without excuse'),sgn(-2))+rr('⏱️ '+t('عدم التأخر','Arriving on time'),sgn(1))+rr('⏳ '+t('خصم عن كل تأخير','Each late arrival'),sgn(-1))+rr('🌹 '+t('حضور جميع طلاب المجموعة بدون تأخر وبدون غياب خلال أسبوع','Whole group present and on time for a full week'),sgn(10))+
- '<h3>'+t('٢- السلوك والمظهر','2. Behaviour & appearance')+'</h3>'+rr('😇 '+t('السلوك والانضباط','Behaviour & discipline'),sgn(3))+rr('👔 '+t('المظهر العام (ويشمل إحضار المصحف الخاص بالطالب مع المرسام)','Appearance (includes bringing own mushaf with pencil)'),sgn(1))+rr('✏️ '+t('إحضار المرسام / نسيانه','Bringing the pencil / forgetting it'),sgn(1)+' / '+sgn(-1))+rr('❌ '+t('خصم عن كل طالب يخل بالمظهر العام','Each student with poor appearance'),sgn(-1))+
- '<h3>'+t('٣- التسميع والإتقان','3. Recitation & mastery')+'</h3>'+rr('📖 '+t('التسميع (الدرس + الجنب + المراجعة)','Recitation (new lesson + recent + revision)'),sgn(5))+rr('➕ '+t('تسميع درس إضافي','Reciting an extra lesson'),sgn(1))+rr('🤝 '+t('المتابعة بدقة مع الزميل','Following closely with a partner'),sgn(1))+
- '<h3>'+t('٤- الإنجاز الكبير','4. Major achievement')+'</h3>'+rr('🌟 '+t('اختبار التجاوز (95% إلى 99%)','Graduation test (95% to 99%)'),sgn(10))+rr('🌟 '+t('اختبار التجاوز (100%)','Graduation test (100%)'),sgn(20))+
- '<p class="muted small" style="margin-top:14px">'+t('ملاحظات التطبيق: الغائب (بعذر أو بدونه) لا تُحتسب له نقاط السلوك والمظهر والتسميع. الغياب بعذر صفر نقاط. المتأخر يأخذ نقطة الحضور ويُخصم عنه نقطة التأخير. أسبوع الحضور الكامل يبدأ الأحد، ويُحتسب للشهر الذي تقع فيه آخر حصة من الأسبوع.','How the app applies these: an absent student (excused or not) gets no behaviour, appearance or recitation points. An excused absence is 0. A late student gets the attendance point minus the late point. The perfect week starts on Sunday and counts toward the month of that week’s last class.')+'</p></div>';}
+ '<h3>'+t('١- الحضور والانضباط','1. Attendance & punctuality')+'</h3>'+rr('👥 '+t('حضور جميع الطلاب (للمجموعة في كل حصة)','Every student present (group, per class)'),sgn(5))+rr('🚫 '+t('غياب بدون عذر','Absence without excuse'),sgn(-2))+rr('⏱️ '+t('عدم التأخر','Arriving on time'),sgn(5))+rr('⏳ '+t('خصم عن كل تأخير','Each late arrival'),sgn(-1))+
+ '<h3>'+t('٢- العبادة والصف الأول','2. Worship & the first row')+'</h3>'+rr('🕌 '+t('الصلاة في الصف الأول (لكل طالب)','Praying in the first row (per student)'),sgn(1))+
+ '<h3>'+t('٣- السلوك والمظهر','3. Behaviour & appearance')+'</h3>'+rr('😇 '+t('السلوك والانضباط والاحترام','Behaviour, discipline and respect'),sgn(3))+rr('👔 '+t('الالتزام بالمظهر العام','Keeping to the dress code'),sgn(3))+
+ '<h3>'+t('٤- التسميع والإتقان','4. Recitation & mastery')+'</h3>'+rr('📖 '+t('التسميع (الدرس + الجنب + المراجعة)','Recitation (new lesson + recent + revision)'),sgn(5))+rr('➕ '+t('تسميع درس إضافي','Reciting an extra lesson'),sgn(1))+rr('🤝 '+t('المتابعة بدقة مع الزميل','Following closely with a partner'),sgn(1))+
+ '<h3>'+t('٥- المبادرات والأثر الإيجابي','5. Initiatives & positive impact')+'</h3>'+rr('💡 '+t('عمل فيه قيمة مجتمعية أو أثر إيجابي','An act of community value or positive impact'),sgn(1))+nt(t('سواء داخل الحلقة أو خارجها أثناء الدوام، ويقيّمها المعلم','Inside the halaqah or outside it during class hours, judged by the teacher'))+
+ '<h3>'+t('٦- الإنجاز الكبير','6. Major achievement')+'</h3>'+rr('🌟 '+t('اختبار التجاوز (نجاح 95% فأعلى)','Graduation test (pass at 95% or above)'),sgn(10))+
+ '<h3>'+t('٧- المخالفات الجسيمة','7. Serious violations')+'</h3>'+rr('⛔ '+t('ثبوت حالة غش أو كذب أو ما شابه','A proven case of cheating, lying or similar'),sgn(-50))+nt(t('وأنتم محشومين بإذن الله','And you are above that, in shā’ Allāh'))+
+ '<p class="muted small" style="margin-top:14px">'+t('ملاحظات التطبيق: الغائب (بعذر أو بدونه) لا تُحتسب له بقية النقاط. الغياب بعذر صفر نقاط. المتأخر يُخصم عنه نقطة ولا يأخذ نقاط عدم التأخر. تحصل المجموعة على +5 في كل حصة يحضرها جميع طلابها (المتأخر يُعدّ حاضرًا). المخالفة الجسيمة تُحتسب في كل الأحوال.','How the app applies these: an absent student (excused or not) gets no other points. An excused absence is 0. A late student loses 1 point and does not get the on-time points. A group gets +5 for each class where all its students attend (late counts as present). A serious violation counts in every case.')+'</p></div>';}
 
 /* ---------- actions ---------- */
 function touch(){saveLocal();}
@@ -261,7 +264,7 @@ function shareText(s){try{if(navigator.share){navigator.share({text:s}).catch(fu
 function shareImage(){var c=drawReport();shareFile(dataURLtoFile(c.toDataURL('image/png'),'results.png'),t('نتائج المسابقة','Competition results'));}
 function drawReport(){
  var M=reportModel();var R=M.rows,top=M.top,avg=M.avg;
- var W=1080,rowH=132,H=330+R.length*rowH+(top.length?110+top.length*76:0)+(M.week&&R.some(function(r){return r.star;})?60:0)+90;
+ var W=1080,rowH=132,H=330+R.length*rowH+(top.length?110+top.length*76:0)+(M.week&&R.some(function(r){return r.bonus;})?60:0)+90;
  var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');var rtl=LANG!=='en';
  var F=function(w,s){return w+' '+s+'px -apple-system,"SF Arabic","SF Pro Display","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif';};
  x.fillStyle='#0f5d4a';x.fillRect(0,0,W,H);
@@ -273,13 +276,13 @@ function drawReport(){
  R.forEach(function(r,i){var y=290+i*rowH;var v=r.v;
   x.fillStyle='#fff';rr(x,70,y,W-140,rowH-20,28);x.fill();
   x.font=F('400',54);x.textAlign='center';x.fillStyle='#1c1c1e';x.fillText(i<3?['🥇','🥈','🥉'][i]:String(i+1),rtl?W-140:140,y+76);
-  x.textAlign=al;x.font=F('700',42);x.fillStyle='#1c1c1e';x.fillText(r.name+(r.star?'  🌹':''),rtl?W-200:200,y+62,600);
+  x.textAlign=al;x.font=F('700',42);x.fillStyle='#1c1c1e';x.fillText(r.name+(r.bonus?'  👥':''),rtl?W-200:200,y+62,600);
   x.fillStyle='#ececf0';rr(x,rtl?260:200,y+84,W-460,12,6);x.fill();
   x.fillStyle=r.color;var bw=Math.max(12,(W-460)*Math.max(0,v)/max);rr(x,rtl?260+(W-460)-bw:200,y+84,bw,12,6);x.fill();
   x.textAlign=ar;x.font=F('800',52);x.fillStyle='#0f5d4a';x.fillText(String(v),rtl?110:W-110,y+70);
   x.font=F('500',24);x.fillStyle='#6e6e73';x.fillText(avg?t('متوسط','avg'):t('نقطة','pts'),rtl?110:W-110,y+100);});
  var y=290+R.length*rowH+30;
- if(M.week&&R.some(function(r){return r.star;})){x.textAlign=al;x.font=F('500',28);x.fillStyle='#6e6e73';x.fillText('🌹 '+t('حضور كامل بدون تأخر طوال الأسبوع (+10)','Perfect attendance all week (+10)'),S0,y+20,W-160);y+=60;}
+ if(M.week&&R.some(function(r){return r.bonus;})){x.textAlign=al;x.font=F('500',28);x.fillStyle='#6e6e73';x.fillText('👥 '+t('حضور جميع طلاب المجموعة: +5 لكل حصة','Every student in the group present: +5 per class'),S0,y+20,W-160);y+=60;}
  if(top.length){x.textAlign=al;x.font=F('700',40);x.fillStyle='#1c1c1e';x.fillText('⭐ '+(M.week?t('أبرز طلاب الأسبوع','Top students this week'):t('أبرز الطلاب','Top students')),S0,y+40);
   top.forEach(function(o,i){var yy=y+100+i*76;x.textAlign=al;x.font=F('600',36);x.fillStyle='#1c1c1e';x.fillText((i+1)+'. '+o.n,S0,yy,560);
    x.font=F('400',28);x.fillStyle='#6e6e73';x.textAlign=ar;x.fillText(o.g+'  ·  '+o.v,E0,yy,330);});}
