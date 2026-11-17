@@ -174,3 +174,12 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:2px 0 6px}
 .addr{display:block;width:100%;border:1.5px dashed var(--line);background:transparent;border-radius:12px;padding:10px;margin-top:8px;color:var(--green);font-weight:600;font-size:15px}
 .tag{font-size:11px;background:var(--card2);border-radius:999px;padding:1px 7px;color:var(--muted);font-weight:600}
 .rend{display:inline-flex;align-items:center;gap:8px;flex:none}
+button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px;gap:6px}
+.schip .sed{font-size:12px;color:var(--muted)}
+.gpick{display:flex;flex-wrap:wrap;gap:6px}
+.gpick button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;color:inherit}
+.gpick button.on{border-color:var(--gc);background:var(--gc);color:#fff;font-weight:600}
+.dz{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.linkd{border:0;background:transparent;color:var(--red,#c0392b);font:inherit;font-size:14px;padding:4px 0}
+.pbtn{border:1.5px solid var(--line);background:var(--card2);border-radius:999px;padding:3px 10px;font:inherit;font-weight:700;display:inline-flex;align-items:center;gap:4px;flex:none}
+.pfx{font-size:22px}.pfx.neg{color:var(--red)}.pfx.pos{color:var(--green)}
