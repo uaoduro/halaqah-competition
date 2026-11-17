@@ -142,11 +142,20 @@ function computeWeek(wk){
   r.n=r.stu.filter(function(o){return o.days||o.ach;}).length||active(r.g).length||1;r.avg=Math.round(r.total/r.n*10)/10;});
  var f=ds[0]||wk,l=ds[ds.length-1]||addDays(wk,4);var F=fmt(useH()?'HS':'GD');
  return {groups:G,byS:byS,label:F.format(toD(f))+(l!==f?' – '+F.format(toD(l)):''),classes:ds.length};}
+function bd(g,inP){var o={beh:0,rec:0,oth:0,add:0,ded:0};
+ Object.keys(S.sessions).forEach(function(d){if(!inP(d))return;var recs=S.sessions[d];
+  g.students.forEach(function(s){var r=recs[s.id];if(!r)return;
+   if(r.a==='u')o.ded+=2;else if(r.a==='l')o.ded+=1;
+   if(r.a==='p'||r.a==='l'){if(r.a==='p')o.oth+=5;o.beh+=(r.b?3:0)+(r.ap?3:0);o.rec+=r.r?5:0;o.oth+=r.fr?1:0;o.add+=(+r.x||0)+(r.f?1:0)+(r.ini?1:0);}
+   if(r.v)o.ded+=50;});
+  o.oth+=gBonus(g,d);});
+ S.tests.forEach(function(x){if(!inP(x.date))return;if(g.students.some(function(s){return s.id===x.sid;}))o.add+=testPts(x.score);});
+ o.tot=o.beh+o.rec+o.oth+o.add-o.ded;return o;}
 function reportModel(){var avg=S.settings.rank==='avg',M,sub,isW=UI.rep==='week';
- if(isW){M=computeWeek(lastWeek());sub=t('نتائج الأسبوع: ','This week: ')+M.label;}
- else{var months=monthList();var m=months.filter(function(x){return x.k===UI.month;})[0]||months[0];M=compute(m.k);sub=t('نتائج ','Results · ')+m.label;}
+ var inP;if(isW){var wk0=lastWeek();M=computeWeek(wk0);sub=t('نتائج الأسبوع: ','This week: ')+M.label;inP=function(d){return weekKey(d)===wk0;};}
+ else{var months=monthList();var m=months.filter(function(x){return x.k===UI.month;})[0]||months[0];M=compute(m.k);sub=t('نتائج ','Results · ')+m.label;inP=function(d){return monthKey(d)===m.k;};}
  var key=function(r){return avg?r.avg:r.total;};
- var rows=M.groups.slice().sort(function(a,b){return key(b)-key(a);}).map(function(r){return {name:r.g.name,color:r.color,v:key(r),bonus:isW?r.week:0};});
+ var rows=M.groups.slice().sort(function(a,b){return key(b)-key(a);}).map(function(r){return {name:r.g.name,color:r.color,v:key(r),bonus:isW?r.week:0,bd:bd(r.g,inP),total:r.total};});
  var top=Object.keys(M.byS).map(function(k){return M.byS[k];}).filter(function(o){return o.days||o.ach;}).sort(function(a,b){return b.total-a.total;}).slice(0,3).map(function(o){return {n:o.s.name,g:o.g.name,v:o.total};});
  return {sub:sub,rows:rows,top:top,avg:avg,week:isW,classes:M.classes};}
 function repToggle(){return '<div class="radio" style="margin-bottom:12px"><button data-act="rep" data-v="month" class="'+(UI.rep!=='week'?'on':'')+'">'+t('الشهر','Month')+'</button><button data-act="rep" data-v="week" class="'+(UI.rep==='week'?'on':'')+'">'+t('هذا الأسبوع','This week')+'</button></div>';}
@@ -162,12 +171,19 @@ function waText(){var M=reportModel();
  if(M.rows.some(function(r){return r.bonus;}))s+='\n👥 '+t('حضور جميع طلاب المجموعة (+5 لكل حصة)','Every student in the group present (+5 per class)')+'\n';
  if(M.top.length){s+='\n⭐ _'+(M.week?t('أبرز طلاب الأسبوع:','Top students this week:'):t('أبرز الطلاب:','Top students:'))+'_\n';M.top.forEach(function(o){s+='• '+o.n+' ('+o.g+'): '+o.v+'\n';});}
  return s+'\n'+t('بارك الله في الجميع 🌹','May Allah bless everyone 🌹');}
+function norm(s){return String(s||'').replace(/[ً-ْٰـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').toLowerCase().trim();}
+function searchHits(q){q=norm(q);if(!q)return [];var a=[];S.groups.forEach(function(g){active(g).forEach(function(s){var n=norm(s.name);var i=n.indexOf(q);if(i>=0)a.push({s:s,g:g,i:i});});});
+ a.sort(function(x,y){return x.i-y.i||x.s.name.localeCompare(y.s.name,'ar');});return a.slice(0,8);}
+function searchHTML(q){if(!norm(q))return '';var hits=searchHits(q);
+ if(!hits.length)return '<div class="qres"><div class="qnone">'+t('لا يوجد طالب بهذا الاسم','No student with that name')+'</div></div>';
+ return '<div class="qres">'+hits.map(function(h){return '<button class="qitem" data-act="pick" data-v="'+h.s.id+'"><bdi>'+esc(h.s.name)+'</bdi><span class="muted small"> · <bdi>'+esc(h.g.name)+'</bdi></span></button>';}).join('')+'</div>';}
 function vLog(){
  if(!S.groups.length)return vBoard();
  if(!UI.date)UI.date=today();var d=UI.date;var recs=S.sessions[d]||{};
  var gs=S.groups.filter(function(g){return UI.gf==='all'||g.id===UI.gf;});if(!gs.length){UI.gf='all';gs=S.groups;}
  var en=LANG==='en';
  var h='<div class="card"><div class="row"><button class="btn sm" data-act="day" data-v="-1" title="'+t('اليوم السابق','Previous day')+'">'+(en?'←':'→')+'</button><input type="date" data-act="date" value="'+d+'"><button class="btn sm" data-act="day" data-v="1" title="'+t('اليوم التالي','Next day')+'">'+(en?'→':'←')+'</button><span class="muted small">'+esc(dateLong(d))+'</span><span class="sp"></span><select data-act="gf"><option value="all">'+t('كل المجموعات','All groups')+'</option>'+S.groups.map(function(g){return '<option value="'+g.id+'" '+(UI.gf===g.id?'selected':'')+'>'+esc(g.name)+'</option>';}).join('')+'</select><button class="btn sm" data-act="gall">'+(gs.every(function(g){return UI.og[g.id];})?t('طي المجموعات','Collapse groups'):t('فتح المجموعات','Expand groups'))+'</button></div>'+
+ '<div class="search"><input type="search" id="q" autocomplete="off" enterkeyhint="search" placeholder="🔍 '+t('ابحث عن طالب…','Search for a student…')+'"><div id="qbox"></div></div>'+
  (S.sessions[d]?'<p class="small muted" style="margin:8px 0 0">✓ '+t('هذه الحصة مسجّلة — يمكنك تعديلها.','This class is recorded — you can edit it.')+'</p>':'<p class="small muted" style="margin:8px 0 0">'+t('حصة جديدة. الإعداد الافتراضي: حاضر في الوقت مع السلوك والمظهر والتسميع. عدّل فقط ما يختلف ثم اضغط «حفظ الحصة».','New class. Everyone starts as on time, with behaviour, appearance and recitation earned. Change only what’s different, then tap “Save class”.')+'</p>')+'</div>';
  var lb2=lastBackup();if(Object.keys(S.sessions).length>=3&&(!lb2||(new Date()-toD(lb2))/864e5>30))h+='<div class="banner row"><span class="sp">💾 '+t('لم تحفظ نسخة احتياطية منذ أكثر من شهر.','You haven’t saved a backup in over a month.')+'</span><button class="btn sm" data-act="backup">'+t('احفظ الآن','Back up now')+'</button></div>';
  var ATT=[['p',t('حاضر','Present')],['l',t('متأخر','Late')],['e',t('غائب بعذر','Excused')],['u',t('بدون عذر','Unexcused')]];
@@ -176,8 +192,8 @@ function vLog(){
   var cards=act.map(function(s){var r=recs[s.id];var x=r||DEF;var p=recPts(x);sum+=p.t;cnt[x.a]++;var ab=x.a==='e'||x.a==='u';var so=!!UI.os[s.id];
    var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 ✗</span>';if(x.fr)flags+='<span class="flag">🕌 +1</span>';if(x.ini)flags+='<span class="flag">💡 +1</span>';if(!x.r)flags+='<span class="flag bad">📖 ✗</span>';if(x.f)flags+='<span class="flag">🤝 +1</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';}if(x.v)flags+='<span class="flag bad">⛔ −50</span>';
    var head='<div class="stu-h" data-act="stog" data-v="'+s.id+'"><span class="nm"><bdi>'+esc(s.name)+'</bdi></span>'+(so?'':'<span class="pill '+x.a+'">'+ATTN[x.a]+'</span>'+flags)+'<span class="sp"></span><span class="pts">'+sgn(p.t)+'</span><span class="chev">'+(so?'▴':'▾')+'</span></div>';
-   if(!so)return '<div class="stu col '+(r?'':'new ')+'">'+head+'<div class="hint">'+t('اضغط على الاسم لفتح خيارات الطالب','Tap the name to open this student’s options')+'</div></div>';
-   return '<div class="stu '+(r?'':'new ')+(ab?'abs':'')+'">'+head+'<div class="hint">'+t('اختر حالة الحضور بضغطة · اضغط على أي خيار مرة لإلغائه ومرة أخرى لإعادته (أخضر = نقاط، أحمر = خصم) · استخدم + و − للدروس الإضافية · اضغط على الاسم لطيّ البطاقة','Tap one attendance status · Tap any option once to turn it off, again to turn it back on (green = points, red = deduction) · Use + and − for extra lessons · Tap the name to fold the card')+'</div>'+
+   if(!so)return '<div id="stu-'+s.id+'" class="stu col '+(r?'':'new ')+'">'+head+'<div class="hint">'+t('اضغط على الاسم لفتح خيارات الطالب','Tap the name to open this student’s options')+'</div></div>';
+   return '<div id="stu-'+s.id+'" class="stu '+(r?'':'new ')+(ab?'abs':'')+'">'+head+'<div class="hint">'+t('اختر حالة الحضور بضغطة · اضغط على أي خيار مرة لإلغائه ومرة أخرى لإعادته (أخضر = نقاط، أحمر = خصم) · استخدم + و − للدروس الإضافية · اضغط على الاسم لطيّ البطاقة','Tap one attendance status · Tap any option once to turn it off, again to turn it back on (green = points, red = deduction) · Use + and − for extra lessons · Tap the name to fold the card')+'</div>'+
    '<div class="seg">'+ATT.map(function(a){return '<button class="'+a[0]+(x.a===a[0]?' on':'')+'" data-act="set" data-s="'+s.id+'" data-k="a" data-v="'+a[0]+'">'+a[1]+'</button>';}).join('')+'</div>'+
    '<div class="chips"><button class="chip '+(x.b?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="b">😇 '+t('السلوك','Behaviour')+' +3</button>'+
    '<button class="chip '+(x.ap?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="ap">👔 '+t('المظهر','Appearance')+' +3</button>'+
@@ -264,7 +280,7 @@ function shareText(s){try{if(navigator.share){navigator.share({text:s}).catch(fu
 function shareImage(){var c=drawReport();shareFile(dataURLtoFile(c.toDataURL('image/png'),'results.png'),t('نتائج المسابقة','Competition results'));}
 function drawReport(){
  var M=reportModel();var R=M.rows,top=M.top,avg=M.avg;
- var W=1080,rowH=132,H=330+R.length*rowH+(top.length?110+top.length*76:0)+(M.week&&R.some(function(r){return r.bonus;})?60:0)+90;
+ var W=1080,rowH=132,tRow=62,tblH=R.length?96+68+R.length*tRow+40:0,H=330+R.length*rowH+tblH+(top.length?110+top.length*76:0)+(M.week&&R.some(function(r){return r.bonus;})?60:0)+90;
  var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');var rtl=LANG!=='en';
  var F=function(w,s){return w+' '+s+'px -apple-system,"SF Arabic","SF Pro Display","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif';};
  x.fillStyle='#0f5d4a';x.fillRect(0,0,W,H);
@@ -283,6 +299,21 @@ function drawReport(){
   x.font=F('500',24);x.fillStyle='#6e6e73';x.fillText(avg?t('متوسط','avg'):t('نقطة','pts'),rtl?110:W-110,y+100);});
  var y=290+R.length*rowH+30;
  if(M.week&&R.some(function(r){return r.bonus;})){x.textAlign=al;x.font=F('500',28);x.fillStyle='#6e6e73';x.fillText('👥 '+t('حضور جميع طلاب المجموعة: +5 لكل حصة','Every student in the group present: +5 per class'),S0,y+20,W-160);y+=60;}
+ if(R.length){x.textAlign=al;x.font=F('700',40);x.fillStyle='#1c1c1e';x.fillText('📋 '+t('تفاصيل النقاط','Points breakdown'),S0,y+44);y+=76;
+  var tx=70,tw=W-140,nameW=250,cw=(tw-nameW-16)/6,hh=68,th=hh+R.length*tRow;
+  x.fillStyle='#fff';rr(x,tx,y,tw,th,24);x.fill();
+  x.save();rr(x,tx,y,tw,th,24);x.clip();x.fillStyle='#0f5d4a';x.fillRect(tx,y,tw,hh);
+  R.forEach(function(r,i){if(i%2){x.fillStyle='#f6f6f9';x.fillRect(tx,y+hh+i*tRow,tw,tRow);}});x.restore();
+  var cx=function(k){return rtl?(tx+tw-nameW-(k-0.5)*cw):(tx+nameW+(k-0.5)*cw);};var nx=rtl?tx+tw-28:tx+28;
+  var heads=[t('السلوك','Conduct'),t('التسميع','Recite'),t('أخرى','Other'),t('إضافية','Extra'),t('خصم','Deduct'),t('المجموع','Total')];
+  x.fillStyle='#fff';x.font=F('700',26);x.textAlign=al;x.fillText(t('المجموعة','Group'),nx,y+43);
+  x.textAlign='center';heads.forEach(function(h,k){x.fillText(h,cx(k+1),y+43,cw-8);});
+  R.forEach(function(r,i){var yy=y+hh+i*tRow+41,b=r.bd;
+   x.textAlign=al;x.font=F('700',28);x.fillStyle='#1c1c1e';x.fillText(r.name,nx,yy,nameW-36);
+   x.textAlign='center';x.font=F('500',30);
+   [[b.beh,'#1c1c1e'],[b.rec,'#1c1c1e'],[b.oth,'#1c1c1e'],[b.add,'#0f7a5c'],[b.ded,'#d1342b']].forEach(function(p,k){x.fillStyle=p[1];x.fillText(String(p[0]),cx(k+1),yy);});
+   x.font=F('800',32);x.fillStyle='#0f5d4a';x.fillText(String(b.tot),cx(6),yy);});
+  y+=th+40;}
  if(top.length){x.textAlign=al;x.font=F('700',40);x.fillStyle='#1c1c1e';x.fillText('⭐ '+(M.week?t('أبرز طلاب الأسبوع','Top students this week'):t('أبرز الطلاب','Top students')),S0,y+40);
   top.forEach(function(o,i){var yy=y+100+i*76;x.textAlign=al;x.font=F('600',36);x.fillStyle='#1c1c1e';x.fillText((i+1)+'. '+o.n,S0,yy,560);
    x.font=F('400',28);x.fillStyle='#6e6e73';x.textAlign=ar;x.fillText(o.g+'  ·  '+o.v,E0,yy,330);});}
@@ -304,6 +335,7 @@ app.addEventListener('click',function(ev){
  case 'lang':LANG=LANG==='en'?'ar':'en';try{localStorage.setItem('hc-lang',LANG);}catch(e){}break;
  case 'tab':UI.tab=v;if(v!=='log'&&v!=='board')UI.sub=v;saveUI();resetScroll=true;break;
  case 'rep':UI.rep=v;saveUI();break;
+ case 'pick':var pf=findStu(v);if(!pf)return;UI.og[pf.g.id]=1;UI.os[v]=1;if(UI.gf!=='all'&&UI.gf!==pf.g.id)UI.gf='all';saveUI();render();setTimeout(function(){var ce=document.getElementById('stu-'+v);if(ce){ce.scrollIntoView({block:'center',behavior:'smooth'});ce.classList.add('flash');setTimeout(function(){ce.classList.remove('flash');},1800);}},40);return;
  case 'toggle':UI.open[v]=!UI.open[v];saveUI();break;
  case 'save':persist();return;
  case 'closemodal':UI.modal=null;break;
@@ -338,6 +370,8 @@ app.addEventListener('click',function(ev){
  case 'delg':if(UI.arm==='g-'+v){S.groups=S.groups.filter(function(x){return x.id!==v;});UI.arm=null;touch();}else UI.arm='g-'+v;break;
  }
  render();});
+app.addEventListener('input',function(ev){var el=ev.target;if(el.id!=='q')return;var box=document.getElementById('qbox');if(box)box.innerHTML=searchHTML(el.value);});
+app.addEventListener('keydown',function(ev){if(ev.target.id==='q'&&ev.key==='Escape'){ev.target.value='';var box=document.getElementById('qbox');if(box)box.innerHTML='';}});
 app.addEventListener('change',function(ev){var el=ev.target;var a=el.dataset.act;if(!a)return;
  if(a==='restore'){var f=el.files&&el.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var d=JSON.parse(rd.result);if(!d||!Array.isArray(d.groups))throw 0;UI.pending=d;render();}catch(e){toast(t('هذا الملف ليس نسخة احتياطية صالحة','That file isn’t a valid backup'));}};rd.readAsText(f);el.value='';return;}
  if(a==='month'){UI.month=el.value;saveUI();}
