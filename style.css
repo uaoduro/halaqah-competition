@@ -184,3 +184,6 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .pbtn{border:1.5px solid var(--line);background:var(--card2);border-radius:999px;padding:3px 10px;font:inherit;font-weight:700;display:inline-flex;align-items:center;gap:4px;flex:none}
 .pfx{font-size:22px}.pfx.neg{color:var(--red)}.pfx.pos{color:var(--green)}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:17px;letter-spacing:.5px;direction:ltr;unicode-bidi:isolate;text-align:left}
+.ghead{display:flex;align-items:center;gap:10px;cursor:pointer;min-height:34px}
+.grp.open .ghead{margin-bottom:12px}
+.gdot{width:11px;height:11px;border-radius:50%;background:var(--gc);flex:none}
