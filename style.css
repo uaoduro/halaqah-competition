@@ -142,3 +142,14 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:2px 0 6px}
 .qitem:active{background:var(--card2)}
 .qnone{padding:12px 14px;color:var(--muted);font-size:14px}
 .stu.flash{box-shadow:0 0 0 3px var(--green);transition:box-shadow .4s}
+.rcard{padding:12px 14px}
+.rhead{cursor:pointer;user-select:none;-webkit-user-select:none;min-height:36px}
+.ngl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin:12px 0 6px;font-weight:600}
+.nchips{display:flex;flex-wrap:wrap;gap:6px}
+.nchip{border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:7px 12px;font-size:15px;min-height:38px}
+.nchip.on{background:var(--green2);border-color:transparent;color:var(--green);font-weight:700}
+.nchip.bad{background:var(--red2);border-color:transparent;color:var(--red);font-weight:700}
+.nchip.late{background:var(--amber2);border-color:transparent;color:var(--amber);font-weight:700}
+.nchip.exc{background:var(--grey2);border-color:var(--muted);font-weight:700}
+.nchip.dim{opacity:.35;pointer-events:none}
+.nchip.arm{background:var(--red);color:#fff;border-color:transparent}
