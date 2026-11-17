@@ -247,6 +247,9 @@ function vGroups(){
  h+='<div class="card"><h2>➕ '+t('مجموعة جديدة','New group')+'</h2><input type="text" dir="auto" id="ng-name" placeholder="'+t('اسم المجموعة (مثال: مجموعة أبي بكر)','Group name (e.g. Abu Bakr group)')+'" style="width:100%"><label class="f">'+t('أسماء الطلاب (اسم في كل سطر)','Student names (one per line)')+'</label><textarea id="ng-stu" dir="auto"></textarea><div class="row" style="margin-top:8px"><button class="btn pri" data-act="addg">'+t('إضافة المجموعة','Add group')+'</button></div></div>';
  var lb=lastBackup();
  h+='<div class="card"><h2>💾 '+t('النسخ الاحتياطي','Backup')+'</h2><p class="muted small">'+t('البيانات محفوظة على هذا الجهاز فقط. احفظ نسخة احتياطية كل شهر (في الملفات أو أرسلها لنفسك في واتساب) حتى لا تضيع إذا تغيّر الجهاز.','Data is stored on this device only. Save a backup every month (to Files, or send it to yourself on WhatsApp) so nothing is lost if the phone changes.')+'</p><p class="small">'+t('آخر نسخة احتياطية: ','Last backup: ')+'<b>'+(lb?esc(dateLong(lb)):t('لا يوجد','never'))+'</b></p><div class="row"><button class="btn pri sp" data-act="backup">⬇️ '+t('حفظ نسخة احتياطية','Save backup file')+'</button><label class="btn sp" style="text-align:center;display:flex;align-items:center;justify-content:center">⬆️ '+t('استعادة من ملف','Restore from file')+'<input type="file" accept=".json,application/json" data-act="restore" style="display:none"></label></div>'+
+ '<label class="btn" style="margin-top:8px;display:flex;align-items:center;justify-content:center;text-align:center">➕ '+t('استيراد حصص سابقة (بدون حذف)','Import past classes (keeps everything)')+'<input type="file" accept=".json,application/json" data-act="importf" style="display:none"></label>'+
+ '<p class="muted small" style="margin:8px 0 0">'+t('«استعادة» تستبدل كل البيانات. «استيراد» يضيف الحصص والطلاب من الملف ويُبقي كل ما على هذا الجهاز كما هو.','“Restore” replaces all data. “Import” adds the classes and students from the file and keeps everything on this device as it is.')+'</p>'+
+ (UI.pendImp?'<div class="banner" style="margin:12px 0 0">'+t('سيُضاف من الملف: ','From the file, this will add: ')+N(UI.pendImp.c.r)+' '+t('سجل حصة','class records')+' · '+N(UI.pendImp.c.t)+' '+t('اختبار','tests')+' · '+N(UI.pendImp.c.s)+' '+t('طالب جديد','new students')+' · '+N(UI.pendImp.c.g)+' '+t('مجموعة جديدة','new groups')+(UI.pendImp.c.k?'<br>'+N(UI.pendImp.c.k)+' '+t('سجل موجود مسبقًا على هذا الجهاز سيبقى كما هو.','records already on this device will stay as they are.'):'')+'<div class="row" style="margin-top:8px"><button class="btn pri" data-act="importok">'+t('إضافة','Add')+'</button><button class="btn" data-act="importcancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+
  (UI.pending?'<div class="banner" style="margin:12px 0 0">'+t('الملف يحتوي على ','The file has ')+N(UI.pending.groups.length)+' '+t('مجموعات و','groups and ')+N(Object.keys(UI.pending.sessions||{}).length)+' '+t('حصص. سيستبدل البيانات الحالية.',' classes. It will replace the current data.')+'<div class="row" style="margin-top:8px"><button class="btn danger arm" data-act="restoreok">'+t('استبدال البيانات','Replace data')+'</button><button class="btn" data-act="restorecancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+'</div>';
  return h;}
 
@@ -268,6 +271,15 @@ function setRec(sid,patch){var d=UI.date;S.sessions[d]=S.sessions[d]||{};var cur
 function shownGroups(){return S.groups.filter(function(g){return UI.gf==='all'||g.id===UI.gf;});}
 function persist(msg){saveLocal();saveUI();toast(msg||t('تم الحفظ ✓','Saved ✓'));}
 
+function doMerge(T,d){var c={g:0,s:0,r:0,k:0,t:0},map={};
+ (d.groups||[]).forEach(function(fg){var g=T.groups.filter(function(x){return x.id===fg.id;})[0]||T.groups.filter(function(x){return norm(x.name)===norm(fg.name);})[0];
+  if(!g){g={id:fg.id,name:fg.name,students:[]};T.groups.push(g);c.g++;}
+  (fg.students||[]).forEach(function(fs){var s=g.students.filter(function(x){return x.id===fs.id;})[0]||g.students.filter(function(x){return norm(x.name)===norm(fs.name);})[0];
+   if(!s){var clash=T.groups.some(function(gg){return gg.students.some(function(x){return x.id===fs.id;});});s={id:clash?uid():fs.id,name:fs.name};if(fs.arc)s.arc=1;g.students.push(s);c.s++;}
+   map[fs.id]=s.id;});});
+ Object.keys(d.sessions||{}).forEach(function(dt){var recs=d.sessions[dt]||{};Object.keys(recs).forEach(function(sid){var lid=map[sid];if(!lid)return;T.sessions[dt]=T.sessions[dt]||{};if(T.sessions[dt][lid]){c.k++;return;}T.sessions[dt][lid]=recs[sid];c.r++;});});
+ (d.tests||[]).forEach(function(x){var lid=map[x.sid];if(!lid)return;if(T.tests.some(function(y){return y.sid===lid&&y.date===x.date&&+y.score===+x.score;}))return;T.tests.push({id:uid(),sid:lid,date:x.date,score:x.score});c.t++;});
+ return c;}
 function lastBackup(){try{return localStorage.getItem('hc-lastbackup');}catch(e){return null;}}
 function dataURLtoFile(u,name){var p=u.split(','),mime=p[0].match(/:(.*?);/)[1],b=atob(p[1]),n=b.length,a=new Uint8Array(n);while(n--)a[n]=b.charCodeAt(n);return new File([a],name,{type:mime});}
 function shareFile(file,ttl,onDone){
@@ -345,6 +357,8 @@ app.addEventListener('click',function(ev){
  case 'sharetxt':shareText(waText());return;
  case 'restoreok':if(UI.pending){S=UI.pending;S.groups=S.groups||[];S.sessions=S.sessions||{};S.tests=S.tests||[];S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||{});UI.pending=null;UI.month=null;persist(t('تمت الاستعادة ✓','Restored ✓'));}break;
  case 'restorecancel':UI.pending=null;break;
+ case 'importok':if(UI.pendImp){S=UI.pendImp.T;var ic=UI.pendImp.c;UI.pendImp=null;UI.month=null;persist(t('تمت الإضافة ✓ ','Added ✓ ')+ic.r+' '+t('سجل','records'));}break;
+ case 'importcancel':UI.pendImp=null;break;
  case 'day':UI.date=addDays(UI.date||today(),+v);saveUI();break;
  case 'goto':UI.date=v;UI.tab='log';saveUI();resetScroll=true;break;
  case 'set':setRec(s,{a:v});break;
@@ -373,6 +387,7 @@ app.addEventListener('click',function(ev){
 app.addEventListener('input',function(ev){var el=ev.target;if(el.id!=='q')return;var box=document.getElementById('qbox');if(box)box.innerHTML=searchHTML(el.value);});
 app.addEventListener('keydown',function(ev){if(ev.target.id==='q'&&ev.key==='Escape'){ev.target.value='';var box=document.getElementById('qbox');if(box)box.innerHTML='';}});
 app.addEventListener('change',function(ev){var el=ev.target;var a=el.dataset.act;if(!a)return;
+ if(a==='importf'){var f2=el.files&&el.files[0];if(!f2)return;var rd2=new FileReader();rd2.onload=function(){try{var d=JSON.parse(rd2.result);if(!d||!Array.isArray(d.groups))throw 0;var T=JSON.parse(JSON.stringify(S));var c=doMerge(T,d);UI.pendImp={T:T,c:c};UI.pending=null;render();}catch(e){toast(t('هذا الملف ليس نسخة احتياطية صالحة','That file isn’t a valid backup'));}};rd2.readAsText(f2);el.value='';return;}
  if(a==='restore'){var f=el.files&&el.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var d=JSON.parse(rd.result);if(!d||!Array.isArray(d.groups))throw 0;UI.pending=d;render();}catch(e){toast(t('هذا الملف ليس نسخة احتياطية صالحة','That file isn’t a valid backup'));}};rd.readAsText(f);el.value='';return;}
  if(a==='month'){UI.month=el.value;saveUI();}
  else if(a==='date'){if(el.value)UI.date=el.value;saveUI();}
