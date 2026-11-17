@@ -458,7 +458,7 @@ app.addEventListener('click',function(ev){
  if(ev.target.closest('[data-stop]')&&el.classList.contains('modal'))return;
  var a=el.dataset.act,v=el.dataset.v,s=el.dataset.s;
  if(el.tagName==='SELECT'||el.tagName==='INPUT')return;
- if(a!=='delsess'&&a!=='delg'&&a!=='rt'&&a!=='delrule')UI.arm=null;
+ if(a!=='delsess'&&a!=='delg'&&a!=='rt'&&a!=='delrule'&&a!=='sy-off')UI.arm=null;
  switch(a){
  case 'theme':THEME={auto:'light',light:'dark',dark:'auto'}[THEME];try{localStorage.setItem('hc-theme',THEME);}catch(e){}applyTheme();toast(t('المظهر: ','Theme: ')+({auto:t('تلقائي (حسب الجهاز)','Auto (follows device)'),light:t('فاتح','Light'),dark:t('داكن','Dark')})[THEME]);return;
  case 'lang':LANG=LANG==='en'?'ar':'en';try{localStorage.setItem('hc-lang',LANG);}catch(e){}break;
