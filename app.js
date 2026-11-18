@@ -32,7 +32,7 @@ function syncMerge(L,R){R=R||{};var ids={},gid={};
 function applyS(D,remote){S=D||{};normS();syApplying=!!remote;saveLocal();syApplying=false;var ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render();}
 function syncNow(){if(!SY||syBusy)return;if(!navigator.onLine){SY.err='offline';saveSY();updSync();return;}syBusy=true;SY.err=null;updSync();var d0=SY.dirty||0,p;
  if(d0)p=rpc('hc_push',{p_code:SY.code,p_data:S,p_base:SY.rev||null,p_create:!SY.rev}).then(function(r){
-  if(r.ok){SY.rev=r.rev;SY.dirty=(SY.dirty===d0)?0:SY.dirty;SY.at=Date.now();if(SY.dirty)syAgain=true;return;}
+  if(r.ok){SY.rev=r.rev;SY.dirty=(SY.dirty===d0)?0:SY.dirty;SY.at=Date.now();if(SY.dirty)syAgain=true;else pushView();return;}
   if(r.conflict){applyS(syncMerge(S,r.data),false);SY.rev=r.rev;syAgain=true;return;}
   if(r.missing){SY.rev=0;syAgain=true;}});
  else p=rpc('hc_pull',{p_code:SY.code}).then(function(r){
@@ -42,6 +42,39 @@ function syncNow(){if(!SY||syBusy)return;if(!navigator.onLine){SY.err='offline';
  p.catch(function(e){SY.err=String(e&&e.message||e);}).then(function(){syBusy=false;saveSY();updSync();if(syAgain){syAgain=false;schedSync(300);}});}
 function updSync(){if(UI&&UI.tab==='groups'){var ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render();}}
 function ago(ts){var m=Math.round((Date.now()-ts)/60000);if(m<1)return t('الآن','just now');if(m<60)return t('قبل '+m+' دقيقة',m+' min ago');var h=Math.round(m/60);if(h<24)return t('قبل '+h+' س',h+' h ago');return esc(dateLong(ymd(new Date(ts))));}
+function both(fn){var L0=LANG;LANG='ar';var a=fn();LANG='en';var e=fn();LANG=L0;return [a,e];}
+function itemize(r,d){var P=PV(d),out=[],A=function(k){return adjOn(k,r)?(+((r.adj||{})[k])||0):0;},pr=r.a==='p'||r.a==='l';
+ var add=function(k,ic,ar,en,v){out.push([k,ic,[ar,en],v]);};
+ if(r.a==='p')add('p','⏱️','في الوقت','On time',P.on+A('p'));else if(r.a==='l')add('l','⏳','متأخر','Late',P.late+A('l'));else if(r.a==='u')add('u','🚫','غائب بدون عذر','Absent, no excuse',P.abs+A('u'));else if(r.a==='e')add('e','📝','غائب بعذر','Excused absence',0);
+ if(pr){if(r.b)add('b','😇','السلوك','Behaviour',P.b+A('b'));if(r.ap)add('ap','👔','المظهر','Appearance',P.ap+A('ap'));if(r.r)add('r','📖','التسميع','Recitation',P.r+A('r'));if(r.fr)add('fr','🕌','الصف الأول','First row',P.fr+A('fr'));if(r.f)add('f','🤝','المتابعة مع الزميل','Following a partner',P.f+A('f'));if(r.ini)add('ini','💡','مبادرة','Initiative',P.ini+A('ini'));
+  var nx=+r.x||0;if(nx>0)add('x','➕','درس إضافي','Extra lesson',nx*P.x+A('x'));else if(nx<0)add('xn','➕','درس لم يكتمل','Lesson not completed',nx*P.x+A('x'));
+  var nm=+r.m||0;if(nm)add('m','➖','خصم نقطة','Point deduction',nm*P.m+A('m'));}
+ if(r.v)add('v','⛔','مخالفة جسيمة','Serious violation',P.v+A('v'));
+ if(r.cx)Object.keys(r.cx).forEach(function(k){var q=(S.rules||[]).filter(function(z){return z.id===k;})[0];add(k,q?q.icon||'⭐':'⭐',q?q.name:'?',q?q.name:'?',(+r.cx[k]||0)+A(k));});
+ return out;}
+function hideDed(items){var neg=0,o=[];items.forEach(function(it){if(it[3]<0)neg+=it[3];else o.push(it);});if(neg)o.push(['ded','➖',['خصومات','Deductions'],neg]);return o;}
+function viewPayload(){var showD=!!S.settings.showDed,avg=S.settings.rank==='avg',dates=Object.keys(S.sessions).concat(S.tests.map(function(x){return x.date;}));
+ var months=monthList().slice(0,6).map(function(m){var dd=dates.filter(function(d){return monthKey(d)===m.k;}).sort()[0]||today();
+  var M=compute(m.k);var gs=M.groups.slice().sort(function(a,b){return (avg?b.avg-a.avg:b.total-a.total);}).map(function(r){
+   var st=r.stu.filter(function(o){return o.days||o.ach||!o.s.arc;}).sort(function(a,b){return b.total-a.total;}).map(function(o){var sum={},cls=[];
+    Object.keys(S.sessions).filter(function(d){return monthKey(d)===m.k&&S.sessions[d][o.s.id];}).sort().forEach(function(d){var it=itemize(S.sessions[d][o.s.id],d),tot=it.reduce(function(a,b){return a+b[3];},0);
+     it.forEach(function(x){var k=x[0];if(!sum[k])sum[k]=[x[1],x[2],0,0];sum[k][2]++;sum[k][3]+=x[3];});if(!showD)it=hideDed(it);cls.push([d,tot,it.map(function(x){return [x[1],x[2],x[3]];})]);});
+    o.tests.forEach(function(x){var v=testPts(x.score,x.date);var k='test';if(!sum[k])sum[k]=['🌟',['اختبار التجاوز','Graduation test'],0,0];sum[k][2]++;sum[k][3]+=v;cls.push([x.date,v,[['🌟',['اختبار التجاوز ('+x.score+'%)','Graduation test ('+x.score+'%)'],v]]]);});
+    cls.sort(function(a,b){return a[0]<b[0]?1:-1;});
+    var sl=Object.keys(sum).map(function(k){return [sum[k][0],sum[k][1],sum[k][2],sum[k][3]];});
+    if(!showD){var neg=0,cnt=0;sl=sl.filter(function(x){if(x[3]<0){neg+=x[3];cnt+=x[2];return false;}return true;});if(neg)sl.push(['➖',['خصومات','Deductions'],cnt,neg]);}
+    sl.sort(function(a,b){return b[3]-a[3];});
+    return {n:o.s.name,t:o.total,s:sl,c:cls};});
+   return {n:r.g.name,c:r.color,t:r.total,a:r.avg,b:r.week,d:r.days,s:st};});
+  return {k:m.k,l:both(function(){return monthLabel(dd);}),g:gs};});
+ return {v:1,ti:both(title),at:Date.now(),avg:avg,showD:showD,cal:S.settings.cal,m:months};}
+function pushView(){if(!SY||!S.settings.view)return;try{rpc('hc_view_put',{p_code:SY.code,p_data:viewPayload()}).catch(function(){});}catch(e){}}
+function viewURL(c){return location.origin+location.pathname.replace(/[^\/]*$/,'')+'view.html#'+c;}
+function viewSec(){var h='<div class="dz"><b>👁️ '+t('رابط العرض للطلاب','View link for students')+'</b><p class="muted small" style="margin:4px 0 8px">'+t('صفحة للعرض فقط: الترتيب، ومن حصل على ماذا. لا يمكن تعديل أي شيء منها، ورمز المزامنة لا يظهر فيها.','A view-only page: the ranking, and who earned what. Nothing can be changed from it, and the sync code isn’t in it.')+'</p>';
+ if(!S.settings.view||!SY.view)return h+'<button class="btn" data-act="sy-view" style="width:100%">'+(S.settings.view?t('إظهار رابط العرض','Show the view link'):t('إنشاء رابط العرض','Create the view link'))+'</button></div>';
+ var u=viewURL(SY.view);
+ return h+'<div class="code small" style="word-break:break-all;margin-bottom:8px">'+esc(u)+'</div><div class="row"><button class="btn sm" data-act="sy-vcopy">'+t('نسخ الرابط','Copy link')+'</button>'+(navigator.share?'<button class="btn sm" data-act="sy-vshare">'+t('مشاركة','Share')+'</button>':'')+'</div>'+
+  '<label class="f" style="margin-top:12px">'+t('تفاصيل الخصومات في صفحة العرض','Deduction details on the view page')+'</label><div class="radio"><button data-act="sy-ded" data-v="0" class="'+(!S.settings.showDed?'on':'')+'">'+t('مخفية (المجموع فقط)','Hidden (total only)')+'</button><button data-act="sy-ded" data-v="1" class="'+(S.settings.showDed?'on':'')+'">'+t('ظاهرة','Shown')+'</button></div></div>';}
 function syncCard(){var h='<div class="card"><h2>☁️ '+t('المزامنة السحابية','Cloud sync')+'</h2>';
  var joinBox=function(lbl){return '<label class="f">'+lbl+'</label><div class="row" style="flex-wrap:nowrap"><input type="text" id="sy-in" dir="ltr" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" style="flex:1;min-width:0" class="code"><button class="btn pri" data-act="sy-join">'+t('ربط','Connect')+'</button></div>';};
  if(!SY){h+='<p class="muted small">'+t('تحفظ نسخة من البيانات على الإنترنت تلقائيًا بعد كل تغيير، وتُبقي الأجهزة متطابقة. تعمل بدون إنترنت وتُزامن عند عودته.','Saves a copy online automatically after every change and keeps devices in step. It still works offline and syncs when the internet is back.')+'</p>'+
@@ -53,7 +86,7 @@ function syncCard(){var h='<div class="card"><h2>☁️ '+t('المزامنة ا
  var st=syBusy?'⏳ '+t('جارٍ المزامنة…','Syncing…'):SY.err==='offline'?'📴 '+t('بدون إنترنت — ستتم المزامنة عند الاتصال','Offline — will sync when connected'):SY.err?'⚠️ '+t('تعذّرت المزامنة، ستُعاد المحاولة','Couldn’t sync, will retry')+' <span class="muted small">('+esc(SY.err)+')</span>':SY.dirty?'⏳ '+t('بانتظار المزامنة','Waiting to sync'):SY.at?'✓ '+t('تمت المزامنة ','Synced ')+ago(SY.at):'';
  h+='<p style="margin:0 0 10px">'+st+'</p>'+
  (UI.syc?'<p class="muted small" style="margin:0 0 4px">'+t('رمز المزامنة — أدخله على الجهاز الآخر. أي شخص لديه الرمز يستطيع رؤية البيانات وتعديلها، فاحتفظ به لنفسك.','Sync code — enter it on the other device. Anyone with this code can see and change the data, so keep it to yourself.')+'</p><div class="row" style="flex-wrap:nowrap;align-items:center"><span class="code sp">'+fmtCode(SY.code)+'</span><button class="btn sm" data-act="sy-copy">'+t('نسخ','Copy')+'</button></div>':'<button class="btn sm" data-act="sy-show">🔑 '+t('إظهار رمز المزامنة','Show sync code')+'</button>')+
- '<details style="margin-top:12px"><summary class="small muted" style="cursor:pointer">'+t('استخدام رمز آخر','Use a different code')+'</summary><div style="margin-top:8px">'+joinBox(t('ألصق الرمز:','Paste the code:'))+(UI.syj?'<div class="banner" style="margin:12px 0 0">'+t('على هذا الجهاز بيانات بالفعل. ماذا تريد؟','This device already has data. What should happen?')+'<div class="row" style="margin-top:8px"><button class="btn pri" data-act="sy-comb">'+t('دمج الاثنين','Combine both')+'</button><button class="btn" data-act="sy-rep">'+t('استخدام نسخة السحابة فقط','Use the cloud copy only')+'</button><button class="btn" data-act="sy-cancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+'</div></details>'+
+ viewSec()+'<details style="margin-top:12px"><summary class="small muted" style="cursor:pointer">'+t('استخدام رمز آخر','Use a different code')+'</summary><div style="margin-top:8px">'+joinBox(t('ألصق الرمز:','Paste the code:'))+(UI.syj?'<div class="banner" style="margin:12px 0 0">'+t('على هذا الجهاز بيانات بالفعل. ماذا تريد؟','This device already has data. What should happen?')+'<div class="row" style="margin-top:8px"><button class="btn pri" data-act="sy-comb">'+t('دمج الاثنين','Combine both')+'</button><button class="btn" data-act="sy-rep">'+t('استخدام نسخة السحابة فقط','Use the cloud copy only')+'</button><button class="btn" data-act="sy-cancel">'+t('إلغاء','Cancel')+'</button></div></div>':'')+'</div></details>'+
  '<div class="row" style="margin-top:12px"><button class="btn sp" data-act="sy-now">↻ '+t('مزامنة الآن','Sync now')+'</button><button class="btn danger" data-act="sy-off">'+t('إيقاف على هذا الجهاز','Turn off here')+'</button></div>'+
  (UI.syoff?'<div class="modal" data-act="sy-offc"><div class="card sheet" data-stop="1"><h2 style="margin:0 0 6px">'+t('إيقاف المزامنة على هذا الجهاز','Turn off sync on this device')+'</h2><p class="muted small" style="margin:0">'+t('النسخة السحابية والأجهزة الأخرى لن تتأثر. احتفظ بالرمز إذا أردت الرجوع:','The cloud copy and other devices aren’t affected. Keep the code if you may want to come back:')+'</p><div class="code" style="margin:10px 0">'+fmtCode(SY.code)+'</div>'+
  '<div class="row" style="margin-top:8px;flex-direction:column;align-items:stretch"><button class="btn" data-act="sy-offk">'+t('إيقاف مع إبقاء البيانات هنا','Turn off, keep the data here')+'</button><button class="btn danger" data-act="sy-offr">'+t('إيقاف وحذف البيانات من هذا الجهاز','Turn off and remove the data from this device')+'</button><button class="btn" data-act="sy-offc">'+t('إلغاء','Cancel')+'</button></div></div></div>':'');
@@ -513,6 +546,10 @@ app.addEventListener('click',function(ev){
  case 'gset':UI.gs=UI.gs||{};UI.gs[v]=!UI.gs[v];break;
  case 'radj':UI.ra=UI.ra===v?null:v;break;
  case 'adj':var ak=el.dataset.k,as=el.dataset.s,dv=+v,cr4=(S.sessions[UI.date]||{})[as]||DEF,b4=rBase(ak,cr4,PV(UI.date)),A4=Object.assign({},cr4.adj||{}),n4=(A4[ak]||0)+dv,lim=Math.abs(b4)||1;if(n4>lim||n4<-lim){toast(t('هذا أقصى تعديل لهذا البند','That’s the most this rule can be adjusted'));return;}if(n4)A4[ak]=n4;else delete A4[ak];setRec(as,{adj:A4});break;
+ case 'sy-view':if(!SY)return;if(!SY.rev){toast(t('انتظر حتى تكتمل المزامنة ثم حاول مرة أخرى','Wait for the sync to finish, then try again'));return;}rpc('hc_view_code',{p_code:SY.code}).then(function(c){SY.view=c;saveSY();if(!S.settings.view){S.settings.view=true;touch();}pushView();render();}).catch(function(){toast(t('تعذّر الاتصال، حاول مرة أخرى','Couldn’t connect, try again'));});return;
+ case 'sy-vcopy':try{navigator.clipboard.writeText(viewURL(SY.view)).then(function(){toast(t('نُسخ الرابط ✓','Link copied ✓'));});}catch(e){}return;
+ case 'sy-vshare':try{navigator.share({title:title(),url:viewURL(SY.view)});}catch(e){}return;
+ case 'sy-ded':S.settings.showDed=v==='1';touch();break;
  case 'redit':UI.re=!UI.re;UI.mr=null;UI.arm=null;break;
  case 'addr-open':UI.mr={sec:+v,neg:+v===7};break;
  case 'mr-close':UI.mr=null;break;

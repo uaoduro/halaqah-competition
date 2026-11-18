@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>نتائج المسابقة</title>
+<meta name="theme-color" content="#f2f2f7">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<style>
+html,body{height:auto;overflow:auto;overscroll-behavior:auto}
+#v{max-width:640px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom))}
+.vh{display:flex;align-items:center;gap:10px;margin:4px 2px 12px}
+.vh h1{font-size:22px;margin:0;flex:1;line-height:1.25}
+.vbtn{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;font-weight:600}
+.mchips{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px;padding-bottom:2px}
+.mchips button{flex:none;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:999px;padding:6px 12px;font:inherit;font-size:14px}
+.mchips button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.gcard{background:var(--card);border-radius:16px;margin-bottom:10px;box-shadow:var(--shadow);overflow:hidden;border-inline-start:5px solid var(--gc)}
+.grow{display:flex;align-items:center;gap:10px;padding:14px;cursor:pointer}
+.rk{font-size:22px;width:30px;text-align:center;flex:none}
+.gn{flex:1;font-weight:700;font-size:17px;min-width:0}
+.gt{font-weight:800;font-size:20px;font-variant-numeric:tabular-nums}
+.gsub{font-size:12px;color:var(--muted);font-weight:500}
+.chev{color:var(--muted);font-size:13px;flex:none}
+.gbody{padding:0 14px 12px}
+.srow{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.srow .nm{flex:1;min-width:0}
+.srow b{font-variant-numeric:tabular-nums}
+.sdet{padding:4px 0 10px}
+.it{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px}
+.it .ic{width:24px;text-align:center;flex:none}
+.it .lb{flex:1;min-width:0}
+.it .ct{color:var(--muted);font-size:13px}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.seg{display:flex;gap:6px;margin:6px 0 8px}
+.seg button{flex:1;border:1px solid var(--line);background:var(--card2);color:inherit;border-radius:10px;padding:7px;font:inherit;font-size:14px}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.cls{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:6px 0}
+.cls .cd{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:2px}
+.note{text-align:center;color:var(--muted);font-size:13px;margin:18px 0 0}
+.bonus{font-size:14px;padding:8px 0 4px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="v"></div>
+<script src="view.js"></script>
+</body>
+</html>

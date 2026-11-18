@@ -1,8 +1,8 @@
 // Bump VERSION whenever you deploy changes so phones pick up the new files.
-const VERSION = 'v24';
+const VERSION = 'v25';
 const CACHE = 'halaqah-' + VERSION;
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
-  'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
+  'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'view.html', 'view.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
