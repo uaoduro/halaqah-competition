@@ -39,7 +39,10 @@ html,body{height:auto;overflow:auto;overscroll-behavior:auto}
 .seg button{flex:1;border:1px solid var(--line);background:var(--card2);color:inherit;border-radius:10px;padding:7px;font:inherit;font-size:14px}
 .seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 .cls{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:6px 0}
-.cls .cd{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:2px}
+.cls{padding:0}
+.cls .cd{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:14px;padding:10px 12px;cursor:pointer}
+.cls.open{padding-bottom:6px}.cls.open .cd{border-bottom:1px solid var(--line);margin-bottom:4px}.cls .it{padding-inline:12px}
+.vmore{display:block;width:100%;margin-top:8px;padding:10px;border-radius:12px;border:1px dashed var(--line);background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer}
 .note{text-align:center;color:var(--muted);font-size:13px;margin:18px 0 0}
 .bonus{font-size:14px;padding:8px 0 4px;color:var(--muted)}
 </style>

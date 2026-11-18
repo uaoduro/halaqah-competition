@@ -41,7 +41,8 @@ function render(){
     h+='<div class="srow" data-a="s" data-v="'+key+'"><span class="nm"><bdi>'+esc(s.n)+'</bdi></span><b class="'+cls(s.t)+'">'+num(s.t)+'</b><span class="chev">'+(so?'▾':(LANG==='en'?'▸':'◂'))+'</span></div>';
     if(so){h+='<div class="sdet"><div class="seg"><button data-a="md" data-v="'+key+'|sum" class="'+(md==='sum'?'on':'')+'">'+t('مجموع الشهر','Month totals')+'</button><button data-a="md" data-v="'+key+'|cls" class="'+(md==='cls'?'on':'')+'">'+t('حصة بحصة','Class by class')+'</button></div>';
      if(md==='sum'){h+=s.s.length?s.s.map(function(x){return '<div class="it"><span class="ic">'+x[0]+'</span><span class="lb">'+esc(L(x[1]))+(x[2]>1?' <span class="ct">×'+x[2]+'</span>':'')+'</span><b class="'+cls(x[3])+'">'+num(x[3])+'</b></div>';}).join(''):'<p class="muted small">'+t('لا توجد نقاط بعد.','No points yet.')+'</p>';}
-     else{h+=s.c.length?s.c.map(function(c){return '<div class="cls"><div class="cd"><span>'+esc(dt(c[0]))+'</span><span class="'+cls(c[1])+'">'+num(c[1])+'</span></div>'+c[2].map(function(x){return '<div class="it"><span class="ic">'+x[0]+'</span><span class="lb">'+esc(L(x[1]))+'</span><span class="'+cls(x[2])+'">'+num(x[2])+'</span></div>';}).join('')+'</div>';}).join(''):'<p class="muted small">'+t('لا توجد حصص بعد.','No classes yet.')+'</p>';}
+     else{var cs=s.c.slice().sort(function(x,y){return x[0]<y[0]?1:-1;}),all=U.all===key,shown=all?cs:cs.slice(0,6);
+      h+=cs.length?'<p class="muted small" style="margin:2px 2px 6px">'+t('اضغط على أي حصة لرؤية تفاصيلها','Tap a class to see its details')+'</p>'+shown.map(function(c){var ck=key+'|'+c[0],co=U.oc===ck;return '<div class="cls'+(co?' open':'')+'"><div class="cd" data-a="c" data-v="'+ck+'"><span>'+esc(dt(c[0]))+'</span><span class="'+cls(c[1])+'">'+num(c[1])+' <span class="chev">'+(co?'▾':(LANG==='en'?'▸':'◂'))+'</span></span></div>'+(co?c[2].map(function(x){return '<div class="it"><span class="ic">'+x[0]+'</span><span class="lb">'+esc(L(x[1]))+'</span><span class="'+cls(x[2])+'">'+num(x[2])+'</span></div>';}).join(''):'')+'</div>';}).join('')+(cs.length>6&&!all?'<button class="vmore" data-a="all" data-v="'+key+'">'+t('عرض كل الحصص ('+cs.length+')','Show all classes ('+cs.length+')')+'</button>':''):'<p class="muted small">'+t('لا توجد حصص بعد.','No classes yet.')+'</p>';}
      h+='</div>';}});
    h+='</div>';}
   h+='</div>';});
@@ -54,6 +55,8 @@ box.addEventListener('click',function(ev){var el=ev.target.closest('[data-a]');i
  else if(a==='g'){U.og=U.og===+v?-1:+v;U.os=null;}
  else if(a==='s'){U.os=U.os===v?null:v;}
  else if(a==='md'){var p=v.split('|');U.mode[p[0]]=p[1];}
+ else if(a==='c'){U.oc=U.oc===v?null:v;}
+ else if(a==='all'){U.all=v;}
  render();});
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')load();});
 setInterval(function(){if(document.visibilityState==='visible')load();},60000);
