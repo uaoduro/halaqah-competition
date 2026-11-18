@@ -201,6 +201,10 @@ function toast(m){toastMsg=m;render();clearTimeout(toastT);toastT=setTimeout(fun
 function monthSel(months){return '<select data-act="month">'+months.map(function(m){return '<option value="'+m.k+'" '+(m.k===UI.month?'selected':'')+'>'+esc(m.label)+'</option>';}).join('')+'</select>';}
 function catNames(){return [t('الحضور','Attendance'),t('السلوك والمظهر والمبادرات','Conduct & extras'),t('التسميع','Recitation'),t('اختبار التجاوز','Graduation test'),'👥 '+t('حضور الجميع','Everyone present')];}
 
+function boardLink(){if(ro)return '';var h='<div class="vlink"><span style="font-size:20px">👁️</span><div class="sp" style="min-width:0"><b>'+t('رابط العرض للطلاب','View link for students')+'</b>';
+ if(SY&&S.settings.view&&SY.view)return h+'<div class="muted small" dir="ltr" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(viewURL(SY.view).replace(/^https?:\/\//,''))+'</div></div><button class="btn sm pri" data-act="sy-vcopy">'+t('نسخ','Copy')+'</button>'+(navigator.share?'<button class="btn sm" data-act="sy-vshare">'+t('مشاركة','Share')+'</button>':'')+'</div>';
+ if(SY)return h+'<div class="muted small">'+t('صفحة يرى فيها الطلاب الترتيب ونقاطهم.','A page where students see the ranking and their points.')+'</div></div><button class="btn sm pri" data-act="sy-view">'+t('إنشاء','Create')+'</button></div>';
+ return h+'<div class="muted small">'+t('يحتاج تشغيل المزامنة أولًا.','Needs cloud sync turned on first.')+'</div></div><button class="btn sm" data-act="tab" data-v="data">'+t('تشغيل','Set up')+'</button></div>';}
 function vBoard(){
  if(!S.groups.length)return '<div class="card empty"><h2>'+t('أهلًا بك 👋','Welcome 👋')+'</h2><p class="muted">'+t('ابدأ بإضافة مجموعات الحلقة وأسماء الطلاب، ثم سجّل كل حصة لتظهر النتائج هنا تلقائيًا.','Start by adding your class groups and student names, then record each class and the results will appear here automatically.')+'</p>'+(ro?'':'<button class="btn pri" data-act="tab" data-v="groups">'+t('إضافة المجموعات','Add groups')+'</button>')+'</div>';
  var months=monthList();if(!months.some(function(m){return m.k===UI.month;}))UI.month=months[0].k;
@@ -208,7 +212,7 @@ function vBoard(){
  var key=function(r){return avg?r.avg:r.total;};
  var R=C.groups.slice().sort(function(a,b){return key(b)-key(a);});
  var max=Math.max(1,Math.max.apply(null,R.map(key)));var cn=catNames();
- var h='<div class="row" style="margin-bottom:12px"><h2 style="margin:0">'+t('ترتيب المجموعات','Group rankings')+'</h2><span class="sp"></span>'+(UI.rep==='week'?'':monthSel(months))+'</div>'+repToggle()+'<div class="row" style="margin:-2px 0 12px"><button class="btn pri sp" data-act="shareimg">🖼️ '+(UI.rep==='week'?t('مشاركة صورة الأسبوع','Share week image'):t('مشاركة صورة النتائج','Share results image'))+'</button><button class="btn sp" data-act="sharetxt">💬 '+t('مشاركة كنص','Share as text')+'</button></div>';
+ var h='<div class="row" style="margin-bottom:12px"><h2 style="margin:0">'+t('ترتيب المجموعات','Group rankings')+'</h2><span class="sp"></span>'+(UI.rep==='week'?'':monthSel(months))+'</div>'+repToggle()+'<div class="row" style="margin:-2px 0 12px"><button class="btn pri sp" data-act="shareimg">🖼️ '+(UI.rep==='week'?t('مشاركة صورة الأسبوع','Share week image'):t('مشاركة صورة النتائج','Share results image'))+'</button><button class="btn sp" data-act="sharetxt">💬 '+t('مشاركة كنص','Share as text')+'</button></div>'+boardLink();
  if(UI.rep==='week')return h+vWeek();
  if(avg)h+='<p class="muted small" style="margin-top:-4px">'+t('الترتيب حسب متوسط نقاط الطالب في كل مجموعة.','Ranked by average points per student in each group.')+'</p>';
  var prev=null,rk=0;

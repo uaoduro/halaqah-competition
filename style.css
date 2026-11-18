@@ -204,3 +204,5 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .preview{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:12px;margin:4px 0 6px}
 .r.redit{cursor:pointer}
 .rhid{opacity:.5}
+
+.vlink{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--card)}.vlink .btn{flex:none}
