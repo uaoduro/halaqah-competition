@@ -188,3 +188,6 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .grp.open .ghead{margin-bottom:12px}
 .gdot{width:11px;height:11px;border-radius:50%;background:var(--gc);flex:none}
 .btn.saved{background:var(--card2);color:var(--muted);box-shadow:none;cursor:default;font-weight:600}
+.adjrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.stp{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:var(--card2);font-size:20px;font-weight:700;color:inherit;line-height:1;flex:none}
+.adjv{min-width:46px;text-align:center}.adjv.chg{color:var(--amber)}
