@@ -9,7 +9,7 @@ S.settings=Object.assign({title:DEF_TITLE,cal:'hijri',rank:'total'},S.settings||
 var FONT='<meta name="theme-color" content="#f2f2f7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">';
 var ART=null,capReady=false,ro=false,dirty=false,publishing=false,saving=false;
 var COLORS=['#0f766e','#b45309','#7c3aed','#be123c','#1d4ed8','#4d7c0f','#0e7490','#a21caf'];
-var DEF={a:'',b:1,ap:1,r:0,x:0,f:0,fr:0,ini:0,v:0};
+var DEF={a:'',b:1,ap:1,r:0,x:0,m:0,f:0,fr:0,ini:0,v:0};
 var SB='https://imaguxksitjekaqlfpyc.supabase.co/rest/v1/rpc/',SBK='sb_publishable_X2bxbbBrb_pWlDHgZTu98g_sui_Zgjt';
 var SY=null;try{SY=JSON.parse(localStorage.getItem('hc-sync')||'null');}catch(e){SY=null;}
 var syT=null,syBusy=false,syAgain=false,syApplying=false;
@@ -59,7 +59,7 @@ function syncCard(){var h='<div class="card"><h2>☁️ '+t('المزامنة ا
  '<div class="row" style="margin-top:8px;flex-direction:column;align-items:stretch"><button class="btn" data-act="sy-offk">'+t('إيقاف مع إبقاء البيانات هنا','Turn off, keep the data here')+'</button><button class="btn danger" data-act="sy-offr">'+t('إيقاف وحذف البيانات من هذا الجهاز','Turn off and remove the data from this device')+'</button><button class="btn" data-act="sy-offc">'+t('إلغاء','Cancel')+'</button></div></div></div>':'');
  return h+'</div>';}
 
-var PDEF={on:5,late:-1,abs:-2,b:3,ap:3,fr:1,ini:1,r:5,x:1,f:1,v:-50,grp:5,test:10},PNEG={late:1,abs:1,v:1},_pvr=null,_pvc={};
+var PDEF={on:5,late:-1,abs:-2,b:3,ap:3,fr:1,ini:1,r:5,x:1,m:-1,f:1,v:-50,grp:5,test:10},PNEG={late:1,abs:1,v:1,m:1},_pvr=null,_pvc={};
 function PV(d){var L=S.settings.pv;if(_pvr!==L){_pvr=L;_pvc={};}d=d||today();if(_pvc[d])return _pvc[d];var o=Object.assign({},PDEF);(L||[]).forEach(function(p){if(p.from<=d)o[p.k]=p.v;});return _pvc[d]=o;}
 function pfmt(n){return n>0?'+'+n:n<0?'−'+Math.abs(n):'0';}
 var app=document.getElementById('app');
@@ -104,13 +104,13 @@ function weekKey(s){var d=toD(s);d.setDate(d.getDate()-d.getDay());return ymd(d)
 function testPts(sc,d){sc=+sc;return sc>=95?PV(d).test:0;}
 function gBonus(g,d){var recs=S.sessions[d]||{},any=false,all=true,nr=0;g.students.forEach(function(s){var x=recs[s.id];if(!x)return;any=true;nr++;if(x.a!=='p'&&x.a!=='l')all=false;});return any&&all&&nr*2>=active(g).length?PV(d).grp:0;}
 function recPts(r,d){var o={att:0,ba:0,rec:0,t:0};if(!r)return o;var P=PV(d);
- if(r.a==='u'){o.att=P.abs;}else if(r.a==='e'||!r.a){}else{o.att=r.a==='l'?P.late:P.on;o.ba=(r.b?P.b:0)+(r.ap?P.ap:0)+(r.fr?P.fr:0)+(r.ini?P.ini:0);o.rec=(r.r?P.r:0)+(+r.x||0)*P.x+(r.f?P.f:0);}
+ if(r.a==='u'){o.att=P.abs;}else if(r.a==='e'||!r.a){}else{o.att=r.a==='l'?P.late:P.on;o.ba=(r.b?P.b:0)+(r.ap?P.ap:0)+(r.fr?P.fr:0)+(r.ini?P.ini:0);o.rec=(r.r?P.r:0)+(+r.x||0)*P.x+(r.f?P.f:0);o.ba+=(+r.m||0)*P.m;}
  if(r.v)o.ba+=P.v;if(r.cx)for(var ck in r.cx)o.ba+=(+r.cx[ck]||0);
  if(r.adj)for(var ak in r.adj){if(!adjOn(ak,r))continue;var an=+r.adj[ak]||0;if(ak==='p'||ak==='l'||ak==='u')o.att+=an;else if(ak==='r'||ak==='x'||ak==='f')o.rec+=an;else o.ba+=an;}
  o.t=o.att+o.ba+o.rec;return o;}
-function rBase(id,x,P){var m={p:P.on,l:P.late,u:P.abs,b:P.b,ap:P.ap,fr:P.fr,ini:P.ini,r:P.r,f:P.f,v:P.v};if(id==='x')return (+x.x||0)*P.x;if(id in m)return m[id];return x.cx&&x.cx[id]!==undefined?+x.cx[id]:0;}
+function rBase(id,x,P){var m={p:P.on,l:P.late,u:P.abs,b:P.b,ap:P.ap,fr:P.fr,ini:P.ini,r:P.r,f:P.f,v:P.v};if(id==='x')return (+x.x||0)*P.x;if(id==='m')return (+x.m||0)*P.m;if(id in m)return m[id];return x.cx&&x.cx[id]!==undefined?+x.cx[id]:0;}
 function aj(x,k){return x&&x.adj&&+x.adj[k]||0;}
-function adjOn(k,r){var pr=r.a==='p'||r.a==='l';if(k==='p'||k==='l'||k==='u')return r.a===k;if(k==='v')return !!r.v;if(k==='x')return pr&&(+r.x||0)>0;if(k==='b'||k==='ap'||k==='fr'||k==='ini'||k==='r'||k==='f')return pr&&!!r[k];return !!(r.cx&&r.cx[k]!==undefined);}
+function adjOn(k,r){var pr=r.a==='p'||r.a==='l';if(k==='p'||k==='l'||k==='u')return r.a===k;if(k==='v')return !!r.v;if(k==='x'||k==='m')return pr&&(+r[k]||0)>0;if(k==='b'||k==='ap'||k==='fr'||k==='ini'||k==='r'||k==='f')return pr&&!!r[k];return !!(r.cx&&r.cx[k]!==undefined);}
 function adjBody(R,gs,recs){var id=R[0],P=PV(UI.date),h='<p class="muted small" style="margin:0 0 8px">'+t('اضغط − أو + لتعديل نقاط هذا البند لطالب معيّن، مثلًا إذا سمّع نصف الدرس.','Tap − or + to change this rule’s points for one student, e.g. if they recited half the lesson.')+'</p>',n=0;
  gs.forEach(function(g){active(g).forEach(function(s){var x=recs[s.id]||DEF;var has=R[1]==='off'?!!x[id]:rMarked(R,x);if(!has||!adjOn(id,x))return;n++;var b=rBase(id,x,P),a=aj(x,id);
   h+='<div class="adjrow"><bdi class="sp">'+esc(s.name)+'</bdi><button class="stp" data-act="adj" data-k="'+id+'" data-s="'+s.id+'" data-v="-1">−</button><b class="num adjv'+(a?' chg':'')+'">'+pfmt(b+a)+'</b><button class="stp" data-act="adj" data-k="'+id+'" data-s="'+s.id+'" data-v="1">+</button></div>';});});
@@ -207,7 +207,7 @@ function bd(g,inP){var o={beh:0,rec:0,oth:0,add:0,ded:0};
  Object.keys(S.sessions).forEach(function(d){if(!inP(d))return;var recs=S.sessions[d];
   g.students.forEach(function(s){var r=recs[s.id];if(!r)return;
    var P=PV(d);if(r.a==='u')o.ded-=P.abs;else if(r.a==='l')o.ded-=P.late;
-   if(r.a==='p'||r.a==='l'){if(r.a==='p')o.oth+=P.on;o.beh+=(r.b?P.b:0)+(r.ap?P.ap:0);o.rec+=r.r?P.r:0;o.oth+=r.fr?P.fr:0;o.add+=(+r.x||0)*P.x+(r.f?P.f:0)+(r.ini?P.ini:0);}
+   if(r.a==='p'||r.a==='l'){if(r.a==='p')o.oth+=P.on;o.beh+=(r.b?P.b:0)+(r.ap?P.ap:0);o.rec+=r.r?P.r:0;o.oth+=r.fr?P.fr:0;o.add+=(+r.x||0)*P.x+(r.f?P.f:0)+(r.ini?P.ini:0);o.ded-=(+r.m||0)*P.m;}
    if(r.v)o.ded-=P.v;if(r.cx)for(var ck2 in r.cx){var cv2=+r.cx[ck2]||0,rq=(S.rules||[]).filter(function(q){return q.id===ck2;})[0],sc2=rq?rSec(rq):5;if(cv2<0)o.ded-=cv2;else if(sc2===3)o.beh+=cv2;else if(sc2===4)o.rec+=cv2;else if(sc2<=2)o.oth+=cv2;else o.add+=cv2;}if(r.adj)for(var ak2 in r.adj){if(!adjOn(ak2,r))continue;var an2=+r.adj[ak2]||0;if(ak2==='l'||ak2==='u'||ak2==='v')o.ded-=an2;else if(ak2==='b'||ak2==='ap')o.beh+=an2;else if(ak2==='r')o.rec+=an2;else if(ak2==='p'||ak2==='fr')o.oth+=an2;else if(ak2==='x'||ak2==='f'||ak2==='ini')o.add+=an2;else{var cq=(S.rules||[]).filter(function(q){return q.id===ak2;})[0];if(cq&&cq.pts<0)o.ded-=an2;else o.add+=an2;}}});
   o.oth+=gBonus(g,d);});
  S.tests.forEach(function(x){if(!inP(x.date))return;if(g.students.some(function(s){return s.id===x.sid;}))o.add+=testPts(x.score,x.date);});
@@ -238,15 +238,15 @@ function searchHits(q){q=norm(q);if(!q)return [];var a=[];S.groups.forEach(funct
 function searchHTML(q){if(!norm(q))return '';var hits=searchHits(q);
  if(!hits.length)return '<div class="qres"><div class="qnone">'+t('لا يوجد طالب بهذا الاسم','No student with that name')+'</div></div>';
  return '<div class="qres">'+hits.map(function(h){return '<button class="qitem" data-act="pick" data-v="'+h.s.id+'"><bdi>'+esc(h.s.name)+'</bdi><span class="muted small"> · <bdi>'+esc(h.g.name)+'</bdi></span></button>';}).join('')+'</div>';}
-var RL=[['p','att','⏱️','في الوقت','On time','+5'],['l','att','⏳','متأخر','Late','−1'],['u','att','🚫','غائب بدون عذر','Absent, no excuse','−2'],['e','att','📝','غائب بعذر','Absent, excused','0'],['r','on','📖','التسميع','Recitation','+5'],['fr','on','🕌','الصف الأول','First row','+1'],['f','on','🤝','المتابعة مع الزميل','Following a partner','+1'],['ini','on','💡','مبادرة','Initiative','+1'],['x','cnt','➕','درس إضافي','Extra lesson','+1'],['b','off','😇','السلوك','Behaviour','−3'],['ap','off','👔','المظهر','Appearance','−3'],['v','on','⛔','مخالفة جسيمة','Serious violation','−50']];
+var RL=[['p','att','⏱️','في الوقت','On time','+5'],['l','att','⏳','متأخر','Late','−1'],['u','att','🚫','غائب بدون عذر','Absent, no excuse','−2'],['e','att','📝','غائب بعذر','Absent, excused','0'],['r','on','📖','التسميع','Recitation','+5'],['fr','on','🕌','الصف الأول','First row','+1'],['f','on','🤝','المتابعة مع الزميل','Following a partner','+1'],['ini','on','💡','مبادرة','Initiative','+1'],['x','cnt','➕','درس إضافي','Extra lesson','+1'],['m','cnt','➖','خصم نقطة','Point deduction','−1'],['b','off','😇','السلوك','Behaviour','−3'],['ap','off','👔','المظهر','Appearance','−3'],['v','on','⛔','مخالفة جسيمة','Serious violation','−50']];
 function rulesAll(){var c=(S.rules||[]).filter(function(r){return !r.arc;}).map(function(r){return [r.id,'cx',r.icon||(r.pts>0?'⭐':'⚠️'),r.name,r.name,(r.pts>0?'+':'−')+Math.abs(r.pts),r.pts];});return rlNow().concat(c);}
-function rlNow(){var P=PV(UI.date),m={p:P.on,l:P.late,u:P.abs,e:0,fr:P.fr,f:P.f,ini:P.ini,x:P.x,b:-P.b,ap:-P.ap,r:P.r,v:P.v};return RL.map(function(R){var c=R.slice();c[5]=pfmt(m[R[0]]);return c;});}
+function rlNow(){var P=PV(UI.date),m={p:P.on,l:P.late,u:P.abs,e:0,fr:P.fr,f:P.f,ini:P.ini,x:P.x,m:P.m,b:-P.b,ap:-P.ap,r:P.r,v:P.v};return RL.map(function(R){var c=R.slice();c[5]=pfmt(m[R[0]]);return c;});}
 function ruleOf(id){return rulesAll().filter(function(R){return R[0]===id;})[0];}
-function rMarked(R,x){if(R[1]==='att')return x.a===R[0];if(R[1]==='cnt')return (+x.x||0)>0;if(R[1]==='off')return !x[R[0]];if(R[1]==='cx')return !!(x.cx&&x.cx[R[0]]!==undefined);return !!x[R[0]];}
-function rNeg(R){return R[0]==='v'||(R[1]==='cx'&&R[6]<0);}
+function rMarked(R,x){if(R[1]==='att')return x.a===R[0];if(R[1]==='cnt')return (+x[R[0]]||0)>0;if(R[1]==='off')return !x[R[0]];if(R[1]==='cx')return !!(x.cx&&x.cx[R[0]]!==undefined);return !!x[R[0]];}
+function rNeg(R){return R[0]==='v'||R[0]==='m'||(R[1]==='cx'&&R[6]<0);}
 function ruleSections(){var A=rulesAll(),pick=function(f){return A.filter(f);};
  return [[t('الحضور','Attendance'),pick(function(R){return R[1]==='att';})],
-  [t('نقاط إضافية — اضغط على من حققها','Extra points — tap who earned them'),pick(function(R){return (R[1]==='on'&&R[0]!=='v')||R[1]==='cnt'||(R[1]==='cx'&&R[6]>0);})],
+  [t('نقاط إضافية — اضغط على من حققها','Extra points — tap who earned them'),pick(function(R){return (R[1]==='on'&&R[0]!=='v')||(R[1]==='cnt'&&R[0]!=='m')||(R[1]==='cx'&&R[6]>0);})],
   [t('تُحسب للجميع — اضغط على من لم يحققها','Given to everyone — tap who missed it'),pick(function(R){return R[1]==='off';})],
   [t('خصومات','Deductions'),pick(rNeg)]];}
 function cxChips(x,sid,pos){return (S.rules||[]).filter(function(r){return !r.arc&&(pos?r.pts>0:r.pts<0);}).map(function(r){var m=!!(x.cx&&x.cx[r.id]!==undefined);return '<button class="chip '+(m?(pos?'on':'bad'):'')+'" data-act="rt" data-k="'+r.id+'" data-s="'+sid+'">'+esc(r.icon||(pos?'⭐':'⚠️'))+' <bdi>'+esc(r.name)+'</bdi> <span class="num">'+(pos?'+':'−')+Math.abs(r.pts)+'</span></button>';}).join('');}
@@ -260,17 +260,17 @@ function ruleRow(R,gs,recs){var id=R[0],ty=R[1],open=!!UI.ro[id],cnt=0,neg=rNeg(
   return '<div class="ngl" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi>'+esc(g.name)+'</bdi></div><div class="nchips">'+act.map(function(s){var x=recs[s.id]||DEF,m=rMarked(R,x);if(m)cnt++;
    var ab=x.a==='e'||x.a==='u',dim=ab&&ty!=='att'&&!neg,armed=id==='v'&&UI.arm==='v-'+s.id;if(!dim)avail++;
    var cls=!m?'':neg?'bad':(ty==='on'||ty==='cnt'||ty==='cx'||id==='p')?'on':id==='l'?'late':id==='e'?'exc':'bad';
-   return '<button class="nchip '+cls+(dim?' dim':'')+(armed?' arm':'')+'" data-act="rt" data-k="'+id+'" data-s="'+s.id+'">'+(m&&!armed?'<span class="ck">✓</span>':'')+'<bdi>'+esc(s.name)+'</bdi>'+(ty==='cnt'&&(+x.x||0)>1?' <span class="num">×'+x.x+'</span>':'')+(armed?' · '+t('اضغط للتأكيد','tap to confirm'):'')+'</button>';}).join('')+'</div>';}).join('');
- var sub=ty==='att'?t('اضغط على الطالب لتحديده، ومرة أخرى لإلغائه','Tap a student to mark them, again to undo'):id==='v'?t('اضغط مرتين للتأكيد','Tap twice to confirm'):ty==='off'?t('الجميع يحصل عليه — اضغط على من لم يحققه','Everyone gets it — tap who didn’t'):ty==='cnt'?t('لأكثر من درس استخدم «حسب الطالب»','For more than one lesson, use “By student”'):neg?t('اضغط على من يُخصم منه','Tap who loses the points'):t('اضغط على من حققه','Tap who did it');
+   return '<button class="nchip '+cls+(dim?' dim':'')+(armed?' arm':'')+'" data-act="rt" data-k="'+id+'" data-s="'+s.id+'">'+(m&&!armed?'<span class="ck">✓</span>':'')+'<bdi>'+esc(s.name)+'</bdi>'+(ty==='cnt'&&(+x[id]||0)>1?' <span class="num">×'+x[id]+'</span>':'')+(armed?' · '+t('اضغط للتأكيد','tap to confirm'):'')+'</button>';}).join('')+'</div>';}).join('');
+ var sub=ty==='att'?t('اضغط على الطالب لتحديده، ومرة أخرى لإلغائه','Tap a student to mark them, again to undo'):id==='v'?t('اضغط مرتين للتأكيد','Tap twice to confirm'):ty==='off'?t('الجميع يحصل عليه — اضغط على من لم يحققه','Everyone gets it — tap who didn’t'):ty==='cnt'?(id==='m'?t('للخصم أكثر من نقطة استخدم «حسب الطالب»','To take off more than one point, use “By student”'):t('لأكثر من درس استخدم «حسب الطالب»','For more than one lesson, use “By student”')):neg?t('اضغط على من يُخصم منه','Tap who loses the points'):t('اضغط على من حققه','Tap who did it');
  var pc=neg?'u':(ty==='on'||ty==='cnt'||ty==='cx'||id==='p')?'p':id==='l'?'l':id==='e'?'e':'u';
  var pcls=R[5].charAt(0)==='+'?'pos':R[5]==='0'?'':'neg';
  var bulk='<div class="rbulk">'+(!neg&&cnt<avail?'<button class="btn sm" data-act="rall" data-k="'+id+'" data-v="sel">✓ '+t('تحديد الكل','Select all')+'</button>':'')+(cnt?'<button class="btn sm" data-act="rall" data-k="'+id+'" data-v="clr">✕ '+t('إلغاء تحديد الكل','Unselect all')+'</button>':'')+'</div>';
  return '<div class="rrow'+(open?' open':'')+'"><div class="rhead" data-act="rhead" data-v="'+id+'"><span class="ric">'+R[2]+'</span><span class="rname">'+(ty==='cx'?esc(R[3]):t(R[3],R[4]))+'</span><span class="rpts num '+pcls+'">'+R[5]+'</span><span class="sp"></span>'+(cnt?'<span class="pill '+pc+'">'+N(cnt)+'</span>':'')+'<span class="chev">'+(open?'▾':(LANG==='en'?'▸':'◂'))+'</span></div>'+(open?'<div class="rbody"><p class="muted small" style="margin:0 0 8px">'+sub+'</p>'+(UI.ra===id?adjBody(R,gs,recs):bulk+body)+(id!=='e'&&(ty==='off'||cnt)?'<div class="rbulk" style="margin-top:10px"><button class="btn sm" data-act="radj" data-v="'+id+'">'+(UI.ra===id?'✓ '+t('تم','Done'):'± '+t('تعديل النقاط لطالب','Adjust a student’s points'))+'</button></div>':'')+'</div>':'')+'</div>';}
-function pName(k){var N={on:['⏱️ عدم التأخر','⏱️ Arriving on time'],late:['⏳ خصم عن كل تأخير','⏳ Each late arrival'],abs:['🚫 غياب بدون عذر','🚫 Absence without excuse'],grp:['👥 حضور جميع طلاب المجموعة','👥 Every student in the group present'],fr:['🕌 الصلاة في الصف الأول','🕌 Praying in the first row'],b:['😇 السلوك والانضباط','😇 Behaviour and discipline'],ap:['👔 المظهر العام','👔 Dress code'],r:['📖 التسميع','📖 Recitation'],x:['➕ درس إضافي','➕ Extra lesson'],f:['🤝 المتابعة مع الزميل','🤝 Following a partner'],ini:['💡 مبادرة أو أثر إيجابي','💡 Initiative or positive impact'],test:['🌟 اختبار التجاوز (95% فأعلى)','🌟 Graduation test (95%+)'],v:['⛔ مخالفة جسيمة','⛔ Serious violation']}[k];return N?t(N[0],N[1]):k;}
+function pName(k){var N={on:['⏱️ عدم التأخر','⏱️ Arriving on time'],late:['⏳ خصم عن كل تأخير','⏳ Each late arrival'],abs:['🚫 غياب بدون عذر','🚫 Absence without excuse'],grp:['👥 حضور جميع طلاب المجموعة','👥 Every student in the group present'],fr:['🕌 الصلاة في الصف الأول','🕌 Praying in the first row'],b:['😇 السلوك والانضباط','😇 Behaviour and discipline'],ap:['👔 المظهر العام','👔 Dress code'],r:['📖 التسميع','📖 Recitation'],x:['➕ درس إضافي','➕ Extra lesson'],m:['➖ خصم نقطة','➖ Point deduction'],f:['🤝 المتابعة مع الزميل','🤝 Following a partner'],ini:['💡 مبادرة أو أثر إيجابي','💡 Initiative or positive impact'],test:['🌟 اختبار التجاوز (95% فأعلى)','🌟 Graduation test (95%+)'],v:['⛔ مخالفة جسيمة','⛔ Serious violation']}[k];return N?t(N[0],N[1]):k;}
 function peSheet(){var k=UI.pe.k,isC=k.indexOf('c:')===0,r=isC?(S.rules||[]).filter(function(q){return q.id===k.slice(2);})[0]:null;if(isC&&!r)return '';
  var cur=isC?r.pts:PV()[k],neg=isC?cur<0:!!PNEG[k],nm=isC?esc((r.icon||'')+' '+r.name):pName(k),hist=isC?[]:(S.settings.pv||[]).filter(function(p){return p.k===k;});
  return '<div class="modal" data-act="pe-close"><div class="card sheet" data-stop="1"><div class="row" style="margin-bottom:2px"><h2 style="margin:0">'+nm+'</h2><span class="sp"></span><button class="ibtn" data-act="pe-close" aria-label="close">✕</button></div>'+
- '<p class="muted small" style="margin:0 0 10px">'+t('الآن: ','Now: ')+sgn(cur)+(k==='x'?' '+t('لكل درس','per lesson'):'')+'</p>'+
+ '<p class="muted small" style="margin:0 0 10px">'+t('الآن: ','Now: ')+sgn(cur)+(k==='x'?' '+t('لكل درس','per lesson'):k==='m'?' '+t('لكل مرة','each time'):'')+'</p>'+
  '<label class="f">'+(neg?t('النقاط المخصومة','Points deducted'):t('النقاط','Points'))+'</label><div class="row" style="flex-wrap:nowrap;align-items:center;gap:8px"><b class="pfx '+(neg?'neg':'pos')+'">'+(neg?'−':'+')+'</b><input type="number" id="pe-v" value="'+Math.abs(cur)+'" min="'+(isC?1:0)+'" max="100" inputmode="numeric" style="width:110px"></div>'+
  '<p class="banner" style="margin:12px 0 0">'+t('يُطبَّق من اليوم (','Applies from today (')+esc(dateLong(today()))+t('). الحصص السابقة تبقى على نقاطها.','). Earlier classes keep their points.')+'</p>'+
  (hist.length?'<p class="muted small" style="margin:8px 0 0">'+t('التغييرات: ','Changes: ')+[pfmt(PDEF[k])].concat(hist.map(function(p){return pfmt(p.v)+' ('+t('من ','from ')+esc(dateLong(p.from))+')';})).join(' → ')+'</p>':'')+
@@ -297,7 +297,7 @@ function vLog(){
   var ATTN={'':t('لم يُحدَّد','Not marked'),p:t('في الوقت','On time'),l:t('متأخر','Late'),e:t('غائب بعذر','Excused'),u:t('غائب بدون عذر','Unexcused')};
  if(UI.lm==='rule')h+=ruleView(gs,recs);else gs.forEach(function(g){var ci=S.groups.indexOf(g);var act=active(g);var sum=0;var cnt={'':0,p:0,l:0,e:0,u:0};var gOpen=!!UI.og[g.id];
   var cards=act.map(function(s){var r=recs[s.id];var x=r||DEF;var p=recPts(x,d);sum+=p.t;cnt[x.a]++;var ab=x.a==='e'||x.a==='u';var so=!!UI.os[s.id];
-   var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 ✗</span>';if(x.fr)flags+='<span class="flag">🕌 '+pfmt(PV(d).fr)+'</span>';if(x.ini)flags+='<span class="flag">💡 '+pfmt(PV(d).ini)+'</span>';if(x.r)flags+='<span class="flag">📖 '+pfmt(PV(d).r)+'</span>';if(x.f)flags+='<span class="flag">🤝 '+pfmt(PV(d).f)+'</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';}if(x.v)flags+='<span class="flag bad">⛔ '+pfmt(PV(d).v)+'</span>';if(x.cx)Object.keys(x.cx).forEach(function(k){var cr0=(S.rules||[]).filter(function(q){return q.id===k;})[0],cv=+x.cx[k]||0;flags+='<span class="flag'+(cv<0?' bad':'')+'">'+esc(cr0?cr0.icon||'':'')+' <span class="num">'+(cv>0?'+':'−')+Math.abs(cv)+'</span></span>';});var asum=0;if(x.adj)Object.keys(x.adj).forEach(function(k){if(adjOn(k,x))asum+=+x.adj[k]||0;});if(asum)flags+='<span class="flag'+(asum<0?' bad':'')+'">± '+pfmt(asum)+'</span>';
+   var flags='';if(!ab){if(!x.b)flags+='<span class="flag bad">😇 ✗</span>';if(!x.ap)flags+='<span class="flag bad">👔 ✗</span>';if(x.fr)flags+='<span class="flag">🕌 '+pfmt(PV(d).fr)+'</span>';if(x.ini)flags+='<span class="flag">💡 '+pfmt(PV(d).ini)+'</span>';if(x.r)flags+='<span class="flag">📖 '+pfmt(PV(d).r)+'</span>';if(x.f)flags+='<span class="flag">🤝 '+pfmt(PV(d).f)+'</span>';if(x.x)flags+='<span class="flag">➕ '+x.x+'</span>';if(x.m)flags+='<span class="flag bad">➖ '+x.m+'</span>';}if(x.v)flags+='<span class="flag bad">⛔ '+pfmt(PV(d).v)+'</span>';if(x.cx)Object.keys(x.cx).forEach(function(k){var cr0=(S.rules||[]).filter(function(q){return q.id===k;})[0],cv=+x.cx[k]||0;flags+='<span class="flag'+(cv<0?' bad':'')+'">'+esc(cr0?cr0.icon||'':'')+' <span class="num">'+(cv>0?'+':'−')+Math.abs(cv)+'</span></span>';});var asum=0;if(x.adj)Object.keys(x.adj).forEach(function(k){if(adjOn(k,x))asum+=+x.adj[k]||0;});if(asum)flags+='<span class="flag'+(asum<0?' bad':'')+'">± '+pfmt(asum)+'</span>';
    var head='<div class="stu-h" data-act="stog" data-v="'+s.id+'"><span class="nm"><bdi>'+esc(s.name)+'</bdi></span>'+(so?'':'<span class="pill '+x.a+'">'+ATTN[x.a]+'</span>'+flags)+'<span class="sp"></span><span class="pts">'+sgn(p.t)+'</span><span class="chev">'+(so?'▴':'▾')+'</span></div>';
    if(!so)return '<div id="stu-'+s.id+'" class="stu col '+(r?'':'new ')+'">'+head+'<div class="hint">'+t('اضغط على الاسم لفتح خيارات الطالب','Tap the name to open this student’s options')+'</div></div>';
    return '<div id="stu-'+s.id+'" class="stu '+(r?'':'new ')+(ab?'abs':'')+'">'+head+'<div class="hint">'+t('اختر حالة الحضور بضغطة · اضغط على أي خيار مرة لإلغائه ومرة أخرى لإعادته (أخضر = نقاط، أحمر = خصم) · استخدم + و − للدروس الإضافية · اضغط على الاسم لطيّ البطاقة','Tap one attendance status · Tap any option once to turn it off, again to turn it back on (green = points, red = deduction) · Use + and − for extra lessons · Tap the name to fold the card')+'</div>'+
@@ -309,7 +309,7 @@ function vLog(){
    '<button class="chip '+(x.f?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="f">🤝 '+t('المتابعة','Partner')+' '+pfmt(PV(d).f)+'</button>'+
    '<button class="chip '+(x.ini?'on':'')+'" data-act="tg" data-s="'+s.id+'" data-k="ini">💡 '+t('مبادرة','Initiative')+' '+pfmt(PV(d).ini)+'</button>'+cxChips(x,s.id,true)+
    '<span class="stepper '+(x.x?'on':'')+'"><button data-act="ex" data-s="'+s.id+'" data-v="-1" aria-label="−">−</button><span>➕ '+t('درس إضافي','Extra lesson')+' '+N(x.x||0)+'</span><button data-act="ex" data-s="'+s.id+'" data-v="1" aria-label="+">+</button></span></div>'+
-   '<div class="chips" style="margin-top:8px"><button class="chip '+(x.v?'bad':'')+'" data-act="tg" data-s="'+s.id+'" data-k="v">⛔ '+t('مخالفة جسيمة','Serious violation')+' '+pfmt(PV(d).v)+'</button>'+cxChips(x,s.id,false)+'</div></div>';}).join('');
+   '<div class="chips" style="margin-top:8px"><button class="chip '+(x.v?'bad':'')+'" data-act="tg" data-s="'+s.id+'" data-k="v">⛔ '+t('مخالفة جسيمة','Serious violation')+' '+pfmt(PV(d).v)+'</button>'+'<span class="stepper '+(x.m?'bad':'')+'"><button data-act="ex" data-k="m" data-s="'+s.id+'" data-v="-1" aria-label="−">−</button><span>➖ '+t('خصم نقطة','Point deduction')+' '+N(x.m||0)+'</span><button data-act="ex" data-k="m" data-s="'+s.id+'" data-v="1" aria-label="+">+</button></span>'+cxChips(x,s.id,false)+'</div></div>';}).join('');
   var allIn=act.length&&!(cnt.e+cnt.u);if(allIn)sum+=5;
   var summ='<span class="gsum">'+(allIn?'<span class="pill p">👥 <span class="num">+'+PV(UI.date).grp+'</span></span>':'')+'<span class="pill p">'+N(cnt.p)+' '+t('في الوقت','on time')+'</span>'+(cnt.l?'<span class="pill l">'+N(cnt.l)+' '+t('متأخر','late')+'</span>':'')+(cnt.e+cnt.u?'<span class="pill u">'+N(cnt.e+cnt.u)+' '+t('غائب','absent')+'</span>':'')+'</span>';
   var allOpen=act.length&&act.every(function(s){return UI.os[s.id];});
@@ -380,7 +380,7 @@ function vRules(){var ed=!!UI.re,rr=function(a,k){var v=k==='e'?0:PV()[k];return
  var base={1:rr('👥 '+t('حضور جميع الطلاب (للمجموعة في كل حصة)','Every student present (group, per class)'),'grp')+rr('🚫 '+t('غياب بدون عذر','Absence without excuse'),'abs')+rr('⏱️ '+t('عدم التأخر','Arriving on time'),'on')+rr('⏳ '+t('خصم عن كل تأخير','Each late arrival'),'late'),
   2:rr('🕌 '+t('الصلاة في الصف الأول (لكل طالب)','Praying in the first row (per student)'),'fr'),
   3:rr('😇 '+t('السلوك والانضباط والاحترام','Behaviour, discipline and respect'),'b')+rr('👔 '+t('الالتزام بالمظهر العام','Keeping to the dress code'),'ap'),
-  4:rr('📖 '+t('التسميع (الدرس + الجنب + المراجعة)','Recitation (new lesson + recent + revision)'),'r')+rr('➕ '+t('تسميع درس إضافي','Reciting an extra lesson'),'x')+rr('🤝 '+t('المتابعة بدقة مع الزميل','Following closely with a partner'),'f'),
+  4:rr('📖 '+t('التسميع (الدرس + الجنب + المراجعة)','Recitation (new lesson + recent + revision)'),'r')+rr('➕ '+t('تسميع درس إضافي','Reciting an extra lesson'),'x')+rr('➖ '+t('خصم نقطة (لكل مرة)','Point deduction (each time)'),'m')+rr('🤝 '+t('المتابعة بدقة مع الزميل','Following closely with a partner'),'f'),
   5:rr('💡 '+t('عمل فيه قيمة مجتمعية أو أثر إيجابي','An act of community value or positive impact'),'ini')+nt(t('سواء داخل الحلقة أو خارجها أثناء الدوام، ويقيّمها المعلم','Inside the halaqah or outside it during class hours, judged by the teacher')),
   6:rr('🌟 '+t('اختبار التجاوز (نجاح 95% فأعلى)','Graduation test (pass at 95% or above)'),'test'),
   7:rr('⛔ '+t('ثبوت حالة غش أو كذب أو ما شابه','A proven case of cheating, lying or similar'),'v')+nt(t('وأنتم محشومين بإذن الله','And you are above that, in shā’ Allāh'))};
@@ -477,7 +477,7 @@ app.addEventListener('click',function(ev){
  case 'rep':UI.rep=v;saveUI();break;
  case 'lm':UI.lm=v;saveUI();break;
  case 'rall':var RA=ruleOf(el.dataset.k);if(!RA)return;var sel=v==='sel';if(sel&&rNeg(RA))return;shownGroups().forEach(function(gA){active(gA).forEach(function(st){var x=(S.sessions[UI.date]||{})[st.id]||DEF;if(sel&&(x.a==='e'||x.a==='u')&&RA[1]!=='att')return;if(sel&&RA[1]==='att'&&x.a)return;if(rMarked(RA,x)===sel)return;
-   if(RA[1]==='att')setRec(st.id,{a:sel?RA[0]:''});else if(RA[1]==='cnt')setRec(st.id,{x:sel?1:0});else if(RA[1]==='cx'){var c3=Object.assign({},x.cx||{});if(sel)c3[RA[0]]=RA[6];else delete c3[RA[0]];setRec(st.id,{cx:c3});}else if(RA[1]==='off'){var o4={};o4[RA[0]]=sel?0:1;setRec(st.id,o4);}else{var o5={};o5[RA[0]]=sel?1:0;setRec(st.id,o5);}});});UI.arm=null;break;
+   if(RA[1]==='att')setRec(st.id,{a:sel?RA[0]:''});else if(RA[1]==='cnt'){var o8={};o8[RA[0]]=sel?1:0;setRec(st.id,o8);}else if(RA[1]==='cx'){var c3=Object.assign({},x.cx||{});if(sel)c3[RA[0]]=RA[6];else delete c3[RA[0]];setRec(st.id,{cx:c3});}else if(RA[1]==='off'){var o4={};o4[RA[0]]=sel?0:1;setRec(st.id,o4);}else{var o5={};o5[RA[0]]=sel?1:0;setRec(st.id,o5);}});});UI.arm=null;break;
  case 'sopen':UI.sm={id:v};break;
  case 'sm-close':UI.sm=null;break;
  case 'sm-g':smKeep();UI.sm.g=v;break;
@@ -519,7 +519,7 @@ app.addEventListener('click',function(ev){
  case 'rhead':var wasO=UI.ro[v];UI.ro={};if(!wasO)UI.ro[v]=1;saveUI();break;
  case 'rt':var rk=el.dataset.k,RD=ruleOf(rk),cr=(S.sessions[UI.date]||{})[s]||DEF;if(!RD)return;
   if(RD[1]==='att'){setRec(s,{a:cr.a===rk?'':rk});}
-  else if(RD[1]==='cnt'){setRec(s,{x:(+cr.x||0)?0:1});}
+  else if(RD[1]==='cnt'){var o7={};o7[rk]=(+cr[rk]||0)?0:1;setRec(s,o7);}
   else if(RD[1]==='cx'){var cc=Object.assign({},cr.cx||{});if(cc[rk]!==undefined)delete cc[rk];else cc[rk]=RD[6];setRec(s,{cx:cc});}
   else if(rk==='v'){if(cr.v){setRec(s,{v:0});UI.arm=null;}else if(UI.arm==='v-'+s){setRec(s,{v:1});UI.arm=null;}else{UI.arm='v-'+s;}}
   else{var o2={};o2[rk]=cr[rk]?0:1;setRec(s,o2);}
@@ -541,7 +541,7 @@ app.addEventListener('click',function(ev){
  case 'goto':UI.date=v;UI.tab='log';saveUI();resetScroll=true;break;
  case 'set':setRec(s,{a:v});break;
  case 'tg':var cur=(S.sessions[UI.date]||{})[s]||DEF;var o={};var cv=cur[el.dataset.k];if(el.dataset.k==='pc'&&cv===undefined)cv=1;o[el.dataset.k]=cv?0:1;setRec(s,o);break;
- case 'ex':var c2=(S.sessions[UI.date]||{})[s]||DEF;setRec(s,{x:Math.max(0,(+c2.x||0)+(+v))});break;
+ case 'ex':var c2=(S.sessions[UI.date]||{})[s]||DEF,ek=el.dataset.k||'x',o6={};o6[ek]=Math.max(0,(+c2[ek]||0)+(+v));setRec(s,o6);break;
  case 'gtog':if(ev.target.closest('button')&&ev.target.closest('button')!==el)return;if(UI.og[v])delete UI.og[v];else UI.og[v]=1;saveUI();break;
  case 'stog':if(UI.os[v])delete UI.os[v];else UI.os[v]=1;saveUI();break;
  case 'gall':var go=shownGroups().every(function(g){return UI.og[g.id];});shownGroups().forEach(function(g){if(go)delete UI.og[g.id];else UI.og[g.id]=1;});saveUI();break;
