@@ -193,3 +193,14 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .adjv{min-width:46px;text-align:center}.adjv.chg{color:var(--amber)}
 .stepper.bad{border-color:var(--red);background:var(--red2);color:var(--red)}
 .adjv.pos{color:var(--green)}.adjv.neg{color:var(--red)}.adjrow.dim{opacity:.45}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:start;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:10px 12px;margin-top:8px;font:inherit;color:inherit}
+.opt.on{border-color:var(--green);background:var(--green2)}
+.opt.dis{opacity:.45}
+.oic{font-size:22px;width:30px;text-align:center;flex:none;font-weight:700}
+.otx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.otx span{font-size:13px;color:var(--muted)}
+.ock{color:var(--green);font-size:18px;flex:none}
+.edh{font-weight:700;margin:16px 0 6px;font-size:15px}
+.preview{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:12px;margin:4px 0 6px}
+.r.redit{cursor:pointer}
+.rhid{opacity:.5}
