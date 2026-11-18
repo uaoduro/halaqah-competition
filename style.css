@@ -192,3 +192,4 @@ button.schip{border:0;font:inherit;color:inherit;cursor:pointer;padding:6px 12px
 .stp{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:var(--card2);font-size:20px;font-weight:700;color:inherit;line-height:1;flex:none}
 .adjv{min-width:46px;text-align:center}.adjv.chg{color:var(--amber)}
 .stepper.bad{border-color:var(--red);background:var(--red2);color:var(--red)}
+.adjv.pos{color:var(--green)}.adjv.neg{color:var(--red)}.adjrow.dim{opacity:.45}
