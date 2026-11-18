@@ -382,14 +382,13 @@ function vPast(){
  var cards=ds.map(function(d){var recs=S.sessions[d];var st=0;
   var rows=S.groups.map(function(g,ci){var c={p:0,l:0,e:0,u:0},pts=0,n=0;
    g.students.forEach(function(s){var r=recs[s.id];if(!r)return;n++;c[r.a]++;pts+=recPts(r,d).t;});
-   if(n&&!(c.e+c.u))pts+=5;if(!n)return '';st+=pts;tot.n+=n;tot.p+=c.p;tot.l+=c.l;tot.ab+=c.e+c.u;
+   pts+=gBonus(g,d);if(!n)return '';st+=pts;tot.n+=n;tot.p+=c.p;tot.l+=c.l;tot.ab+=c.e+c.u;
    return '<div class="prow" style="--gc:'+COLORS[ci%COLORS.length]+'"><span class="dot"></span><bdi class="sp">'+esc(g.name)+'</bdi><span class="gsum"><span class="pill p">'+N(c.p)+' '+t('في الوقت','on time')+'</span>'+(c.l?'<span class="pill l">'+N(c.l)+' '+t('متأخر','late')+'</span>':'')+(c.e+c.u?'<span class="pill u">'+N(c.e+c.u)+' '+t('غائب','absent')+'</span>':'')+'</span><b>'+sgn(pts)+'</b></div>';}).join('');
   tot.pts+=st;
   return '<div class="card"><div class="row"><h3>'+esc(dateLong(d))+'</h3><span class="sp"></span><span class="muted small">'+t('المجموع','Total')+' '+sgn(st)+'</span><button class="btn sm" data-act="goto" data-v="'+d+'">✏️ '+t('فتح وتعديل','Open & edit')+'</button></div><div class="prows">'+rows+'</div></div>';}).join('');
  var pct=tot.n?Math.round(tot.p/tot.n*100):0;
  var h='<div class="row" style="margin-bottom:12px"><h2 style="margin:0">'+t('الحصص السابقة','Past classes')+'</h2><span class="sp"></span>'+monthSel(months)+'</div>';
  if(!ds.length)return h+'<div class="card empty"><p class="muted">'+t('لا توجد حصص مسجّلة في هذا الشهر.','No classes recorded this month.')+'</p></div>';
- h+='<div class="cats" style="margin-bottom:14px"><div class="cat"><b>'+N(ds.length)+'</b><span>'+t('حصص','classes')+'</span></div><div class="cat"><b>'+N(pct)+'%</b><span>'+t('حضور في الوقت','on-time attendance')+'</span></div><div class="cat"><b>'+N(tot.l)+'</b><span>'+t('حالات تأخر','late arrivals')+'</span></div><div class="cat"><b>'+N(tot.ab)+'</b><span>'+t('حالات غياب','absences')+'</span></div><div class="cat"><b>'+sgn(tot.pts)+'</b><span>'+t('نقاط الحصص','class points')+'</span></div></div>';
  return h+cards;}
 
 function vTests(){
